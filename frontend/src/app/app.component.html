@@ -1,7 +1,7 @@
-<ng-container *ngIf="isLoginRoute; else healthUI">
+<ng-container *ngIf="isLoginRoute; else mainUI">
   <router-outlet></router-outlet>
 </ng-container>
-<ng-template #healthUI>
+<ng-template #mainUI>
   <mat-toolbar color="primary" class="navbar-container">
     <div class="navbar-content">
       <!-- Brand/Logo -->
@@ -59,62 +59,5 @@
       </div>
     </div>
   </mat-toolbar>
-  <div class="min-h-screen bg-gray-100 flex items-center justify-center">
-    <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-      <div class="text-center">
-        <h1 class="text-3xl font-bold text-gray-900 mb-6">{{ title }}</h1>
-
-        <div *ngIf="loading" class="flex justify-center items-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span class="ml-2 text-gray-600">Checking system status...</span>
-        </div>
-
-        <div *ngIf="!loading" class="space-y-4">
-          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <span class="text-gray-700">Firebase Connection</span>
-            <div class="flex items-center">
-              <div 
-                class="w-3 h-3 rounded-full mr-2"
-                [ngClass]="firebaseHealthy ? 'bg-green-500' : 'bg-red-500'"
-              ></div>
-              <span 
-                class="text-sm font-medium"
-                [ngClass]="firebaseHealthy ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ firebaseHealthy ? 'Connected' : 'Disconnected' }}
-              </span>
-            </div>
-          </div>
-
-          <div 
-            class="p-4 rounded-lg text-center"
-            [ngClass]="firebaseHealthy ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'"
-          >
-            <h2 
-              class="text-xl font-semibold mb-2"
-              [ngClass]="firebaseHealthy ? 'text-green-800' : 'text-red-800'"
-            >
-              {{ firebaseHealthy ? 'System Ready' : 'System Error' }}
-            </h2>
-            <p 
-              class="text-sm"
-              [ngClass]="firebaseHealthy ? 'text-green-600' : 'text-red-600'"
-            >
-              {{ firebaseHealthy 
-                ? 'Riskflow CRM - System Ready' 
-                : 'Please check Firebase configuration' 
-              }}
-            </p>
-          </div>
-
-          <div class="text-xs text-gray-500 mt-6">
-            <p>Angular 18.x</p>
-            <p>Firebase SDK Ready</p>
-            <p>Story 1.1 - Initial Setup Complete</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
   <router-outlet></router-outlet>
 </ng-template>

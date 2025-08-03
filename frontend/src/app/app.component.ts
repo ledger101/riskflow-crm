@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
-import { FirebaseService } from './core/services/firebase.service';
 import { AuthService } from './core/services/auth.service';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,31 +18,21 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 })
 export class AppComponent implements OnInit {
   title = 'Riskflow CRM';
-  firebaseHealthy = false;
-  loading = true;
   isLoginRoute = false;
   isAdmin = false;
 
   constructor(
-    private firebaseService: FirebaseService,
     private authService: AuthService,
     private router: Router
   ) {}
 
   async ngOnInit() {
-    // Determine initial route to hide health-check UI on /login
+    // Determine initial route to hide navbar on /login
     this.isLoginRoute = this.router.url === '/login';
-    try {
-      this.firebaseHealthy = await this.firebaseService.healthCheck();
-      // Temporarily set all users as admin for testing
-      this.isAdmin = true;
-    } catch (error) {
-      console.error('Health check failed:', error);
-      this.firebaseHealthy = false;
-    } finally {
-      this.loading = false;
-    }
-    // Check for login route to hide health UI
+    // Temporarily set all users as admin for testing
+    this.isAdmin = true;
+    
+    // Check for login route to hide navbar
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         this.isLoginRoute = event.urlAfterRedirects === '/login';

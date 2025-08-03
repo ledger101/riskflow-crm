@@ -20,10 +20,10 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('Riskflow CRM');
   });
 
-  it('should render title', () => {
+  it('should render title in navbar', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, frontend');
+    expect(compiled.querySelector('.brand-text')?.textContent).toContain('Riskflow CRM');
   });
 });
