@@ -2,17 +2,63 @@
   <router-outlet></router-outlet>
 </ng-container>
 <ng-template #healthUI>
-  <nav class="bg-white shadow mb-4 p-4">
-    <a routerLink="/" class="mr-4 text-blue-600 hover:underline">Dashboard</a>
-    <a routerLink="/opportunities" class="mr-4 text-blue-600 hover:underline">Opportunities</a>
-    <div  class="inline-block mr-4">
-      <span class="text-gray-600 mr-2">Admin:</span>
-      <a routerLink="/admin/users" class="mr-2 text-blue-600 hover:underline">Users</a>
-      <a routerLink="/admin/solutions" class="mr-2 text-blue-600 hover:underline">Solutions</a>
-      <a routerLink="/admin/clients" class="mr-2 text-blue-600 hover:underline">Clients</a>
+  <mat-toolbar color="primary" class="navbar-container">
+    <div class="navbar-content">
+      <!-- Brand/Logo -->
+      <div class="brand-section">
+        <mat-icon class="brand-icon">business</mat-icon>
+        <span class="brand-text">Riskflow CRM</span>
+      </div>
+      
+      <!-- Main Navigation -->
+      <nav class="main-nav">
+        <a mat-button 
+           routerLink="/" 
+           routerLinkActive="active-link" 
+           [routerLinkActiveOptions]="{exact: true}"
+           class="nav-link">
+          <mat-icon>dashboard</mat-icon>
+          <span>Dashboard</span>
+        </a>
+        
+        <a mat-button 
+           routerLink="/opportunities" 
+           routerLinkActive="active-link"
+           class="nav-link">
+          <mat-icon>trending_up</mat-icon>
+          <span>Opportunities</span>
+        </a>
+        
+        <!-- Admin Section -->
+        <button mat-button [matMenuTriggerFor]="adminMenu" class="nav-link admin-trigger">
+          <mat-icon>admin_panel_settings</mat-icon>
+          <span>Admin</span>
+          <mat-icon class="dropdown-arrow">keyboard_arrow_down</mat-icon>
+        </button>
+        <mat-menu #adminMenu="matMenu" class="admin-menu">
+          <a mat-menu-item routerLink="/admin/users" routerLinkActive="active-menu-item">
+            <mat-icon>people</mat-icon>
+            <span>Users</span>
+          </a>
+          <a mat-menu-item routerLink="/admin/solutions" routerLinkActive="active-menu-item">
+            <mat-icon>engineering</mat-icon>
+            <span>Solutions</span>
+          </a>
+          <a mat-menu-item routerLink="/admin/clients" routerLinkActive="active-menu-item">
+            <mat-icon>business_center</mat-icon>
+            <span>Clients</span>
+          </a>
+        </mat-menu>
+      </nav>
+      
+      <!-- User Actions -->
+      <div class="user-actions">
+        <button mat-icon-button (click)="logout()" class="logout-btn" matTooltip="Logout">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </div>
     </div>
-    <button (click)="logout()" class="text-red-600 hover:underline float-right">Logout</button>
-  </nav>
+  </mat-toolbar>
   <div class="min-h-screen bg-gray-100 flex items-center justify-center">
     <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
       <div class="text-center">
