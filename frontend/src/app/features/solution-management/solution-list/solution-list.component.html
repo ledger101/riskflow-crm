@@ -1,0 +1,49 @@
+<div class="solution-management">
+  <mat-toolbar class="page-header">
+    <h2>Solution Management</h2>
+    <span class="spacer"></span>
+    <button mat-raised-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Add Solution
+    </button>
+  </mat-toolbar>
+
+  <mat-card class="table-card">
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-container">
+        Loading solutions...
+      </div>
+
+      <div *ngIf="!loading && solutions.length === 0" class="empty-state">
+        <p>No solutions found. Create your first solution to get started.</p>
+      </div>
+
+      <table mat-table [dataSource]="solutions" *ngIf="!loading && solutions.length > 0">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let solution">{{ solution.name }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <td mat-cell *matCellDef="let solution">{{ solution.description }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let solution">
+            <button mat-icon-button color="primary" (click)="openEditDialog(solution)" matTooltip="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteSolution(solution)" matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+</div>

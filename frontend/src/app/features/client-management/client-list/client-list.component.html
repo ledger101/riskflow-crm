@@ -1,0 +1,91 @@
+<div class="client-management">
+  <mat-toolbar class="page-header">
+    <h2>Client Management</h2>
+    <span class="spacer"></span>
+    <button mat-raised-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Add Client
+    </button>
+  </mat-toolbar>
+
+  <!-- Filters -->
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <div class="filter-container">
+        <mat-form-field appearance="outline">
+          <mat-label>Filter by Country</mat-label>
+          <mat-select [(value)]="selectedCountry" (selectionChange)="applyFilters()">
+            <mat-option value="">All Countries</mat-option>
+            <mat-option *ngFor="let country of countries" [value]="country">
+              {{ country }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Filter by Industry</mat-label>
+          <mat-select [(value)]="selectedIndustry" (selectionChange)="applyFilters()">
+            <mat-option value="">All Industries</mat-option>
+            <mat-option *ngFor="let industry of industries" [value]="industry">
+              {{ industry }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-button (click)="clearFilters()" class="clear-filters">
+          Clear Filters
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="table-card">
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-container">
+        Loading clients...
+      </div>
+
+      <div *ngIf="!loading && filteredClients.length === 0" class="empty-state">
+        <p *ngIf="clients.length === 0">No clients found. Create your first client to get started.</p>
+        <p *ngIf="clients.length > 0">No clients match the current filters.</p>
+      </div>
+
+      <table mat-table [dataSource]="filteredClients" matSort *ngIf="!loading && filteredClients.length > 0">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+          <td mat-cell *matCellDef="let client">{{ client.name }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="country">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Country</th>
+          <td mat-cell *matCellDef="let client">{{ client.country }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="industry">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Industry</th>
+          <td mat-cell *matCellDef="let client">{{ client.industry }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="contactEmail">
+          <th mat-header-cell *matHeaderCellDef>Contact Email</th>
+          <td mat-cell *matCellDef="let client">{{ client.contactEmail || '-' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let client">
+            <button mat-icon-button color="primary" (click)="openEditDialog(client)" matTooltip="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteClient(client)" matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+</div>
