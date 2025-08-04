@@ -15,16 +15,19 @@
     
     .filter-container {
       display: flex;
-      gap: 16px;
-      align-items: center;
+      gap: 20px;
+      align-items: flex-end;
       flex-wrap: wrap;
       
       mat-form-field {
-        min-width: 200px;
+        min-width: 250px;
+        flex: 1;
+        max-width: 300px;
       }
       
       .clear-filters {
-        margin-top: 8px;
+        margin-left: auto;
+        white-space: nowrap;
       }
     }
   }
