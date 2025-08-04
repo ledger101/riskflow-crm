@@ -20,6 +20,17 @@
     width: calc(50% - 8px);
   }
   
+  // Fix for misplaced vertical lines in Material UI outlined form fields
+  mat-form-field.mat-form-field-appearance-outline {
+    .mdc-notched-outline__notch {
+      border-left: none !important;
+    }
+    
+    .mdc-notched-outline__trailing {
+      border-left: none !important;
+    }
+  }
+  
   mat-dialog-content {
     padding: 20px 24px;
     max-height: 60vh;
