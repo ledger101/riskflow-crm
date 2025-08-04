@@ -19,7 +19,8 @@ export class CountriesService {
         const data = doc.data();
         countries.push(data['name']);
       });
-
+      console.log('Fetched countries:', countries);
+      
       return countries;
     } catch (error) {
       console.error('Error fetching countries:', error);

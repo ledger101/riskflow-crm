@@ -1,21 +1,70 @@
 .solution-form-dialog {
-  .form-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 400px;
-  }
+  min-width: 500px;
+  max-width: 600px;
   
-  .full-width {
+  .w-full {
     width: 100%;
   }
   
-  mat-dialog-content {
-    padding: 20px 24px;
+  // Enhanced form field styling
+  mat-form-field {
+    &.w-full {
+      width: 100%;
+    }
+    
+    .mat-mdc-form-field-subscript-wrapper {
+      margin-top: 8px;
+    }
   }
   
-  mat-dialog-actions {
-    padding: 16px 24px;
-    gap: 8px;
+  // Custom button styling
+  button {
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+  
+  // Slide toggle styling
+  mat-slide-toggle {
+    .mdc-switch {
+      --mdc-switch-selected-track-color: rgb(59 130 246);
+      --mdc-switch-selected-handle-color: rgb(255 255 255);
+    }
+  }
+  
+  // Animation for spinning icon
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  // Responsive design
+  @media (max-width: 600px) {
+    min-width: 90vw;
+    max-width: 90vw;
+    
+    .space-x-3 > * + * {
+      margin-left: 0.5rem;
+    }
+    
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+    }
   }
 }

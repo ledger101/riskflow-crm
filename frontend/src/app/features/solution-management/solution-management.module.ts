@@ -13,6 +13,8 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCardModule } from '@angular/material/card';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 // Components
 import { SolutionListComponent } from './solution-list/solution-list.component';
@@ -38,7 +40,9 @@ import { SolutionFormComponent } from './solution-form/solution-form.component';
     MatDialogModule,
     MatSnackBarModule,
     MatToolbarModule,
-    MatCardModule
+    MatCardModule,
+    MatSelectModule,
+    MatSlideToggleModule
   ]
 })
 export class SolutionManagementModule { }

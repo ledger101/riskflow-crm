@@ -5,6 +5,7 @@ import { FirebaseService } from './firebase.service';
 
 export interface AppUser {
   id: string;
+  name?: string;
   email: string;
   role: string;
 }
@@ -21,24 +22,27 @@ export class UserService {
     this.firestore = this.firebaseService.getFirestore();
   }
 
-  async createUser(email: string, password: string, role: string): Promise<void> {
-    const userCred = await createUserWithEmailAndPassword(this.auth, email, password);
+  async createUser(userData: { name: string; email: string; password: string; role: string }): Promise<void> {
+    const userCred = await createUserWithEmailAndPassword(this.auth, userData.email, userData.password);
     // Store role in Firestore userRoles collection
     await setDoc(doc(this.firestore, 'userRoles', userCred.user.uid), {
-      email,
-      role
+      name: userData.name,
+      email: userData.email,
+      role: userData.role
     });
   }
 
-  async updateUserRole(userId: string, role: string): Promise<void> {
-    await updateDoc(doc(this.firestore, 'userRoles', userId), { role });
+  async updateUser(userId: string, userData: { name: string; email: string; role: string }): Promise<void> {
+    await updateDoc(doc(this.firestore, 'userRoles', userId), userData);
   }
 
   async getUsers(): Promise<AppUser[]> {
     const snapshot = await getDocs(collection(this.firestore, 'userRoles'));
     return snapshot.docs.map(docSnap => ({
       id: docSnap.id,
-      ...(docSnap.data() as any)
+      name: docSnap.data()['name'] || '',
+      email: docSnap.data()['email'] || '',
+      role: docSnap.data()['role'] || ''
     }));
   }
 }

@@ -9,7 +9,7 @@
   </mat-toolbar>
 
   <!-- Filters -->
-  <mat-card class="filter-card">
+  <!-- <mat-card class="filter-card">
     <mat-card-content>
       <div class="filter-container">
         <mat-form-field appearance="outline">
@@ -37,8 +37,38 @@
         </button>
       </div>
     </mat-card-content>
-  </mat-card>
+  </mat-card> -->
+<div class="client-filters bg-card text-card-foreground rounded-lg shadow-md p-4 flex items-center space-x-4">
+  <!-- Filter by Client Name -->
+  <div class="flex flex-col">
+    <label for="clientName" class="text-sm font-medium text-foreground mb-1">Filter by Client Name</label>
+    <div class="relative">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2v6m-6-6h6m6 0h-6m6 0v6m-6-6v6" />
+        </svg>
+      </span>
+      <input id="clientName" type="text" placeholder="Search by name..." 
+             class="pl-10 pr-4 py-2 w-full rounded-md border border-input bg-background text-sm focus:ring-2 focus:ring-ring focus:ring-offset-2">
+    </div>
+  </div>
 
+  <!-- Filter by Country -->
+  <div class="flex flex-col">
+    <label for="country" class="text-sm font-medium text-foreground mb-1">Filter by Country</label>
+    <select id="country" class="py-2 px-3 w-full rounded-md border border-input bg-background text-sm focus:ring-2 focus:ring-ring focus:ring-offset-2">
+      <option value="all">All Countries</option>
+      <option *ngFor="let country of countries" [value]="country">{{ country }}</option>
+    </select>
+  </div>
+
+  <!-- Clear Filters Button -->
+  <div class="ml-auto">
+    <button type="button" class="px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm font-medium focus:ring-2 focus:ring-ring focus:ring-offset-2">
+      Clear Filters
+    </button>
+  </div>
+</div>
   <mat-card class="table-card">
     <mat-card-content>
       <div *ngIf="loading" class="loading-container">

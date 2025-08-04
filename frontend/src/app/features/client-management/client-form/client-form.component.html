@@ -1,84 +1,90 @@
-<div class="client-form-dialog">
-  <h2 mat-dialog-title>{{ getTitle() }}</h2>
-  
-  <form [formGroup]="clientForm" (ngSubmit)="onSubmit()">
-    <mat-dialog-content>
-      <div class="form-fields">
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width" aria-labelledby="name-label">
-            <mat-label id="name-label">Name *</mat-label>
-            <input matInput formControlName="name" placeholder="Enter client name" required aria-required="true">
-            <mat-error *ngIf="clientForm.get('name')?.hasError('required')">
-              Name is required
-            </mat-error>
-            <mat-error *ngIf="clientForm.get('name')?.hasError('minlength')">
-              Name must be at least 2 characters long
-            </mat-error>
-          </mat-form-field>
-        </div>
+<div class="client-form-dialog bg-card text-card-foreground rounded-lg shadow-lg">
+  <div class="p-6">
+    <h2 class="text-lg font-semibold">{{ getTitle() }}</h2>
+  </div>
 
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="half-width" aria-labelledby="country-label">
-            <mat-label id="country-label">Country *</mat-label>
-            <mat-select formControlName="country" required aria-required="true">
-              <mat-option *ngFor="let country of countries" [value]="country">
-                {{ country }}
-              </mat-option>
-              <mat-option value="add-new" (click)="openAddCountryDialog()">
-                Add New Country
-              </mat-option>
-            </mat-select>
-            <mat-error *ngIf="clientForm.get('country')?.hasError('required')">
-              Country is required
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="half-width">
-            <mat-label>Industry *</mat-label>
-            <mat-select formControlName="industry" required>
-              <mat-option *ngFor="let industry of industries" [value]="industry">
-                {{ industry }}
-              </mat-option>
-            </mat-select>
-            <mat-error *ngIf="clientForm.get('industry')?.hasError('required')">
-              Industry is required
-            </mat-error>
-          </mat-form-field>
-        </div>
-
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="half-width">
-            <mat-label>Contact Email</mat-label>
-            <input matInput formControlName="contactEmail" type="email" placeholder="email@company.com">
-            <mat-error *ngIf="clientForm.get('contactEmail')?.hasError('email')">
-              Please enter a valid email address
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="half-width">
-            <mat-label>Contact Phone</mat-label>
-            <input matInput formControlName="contactPhone" placeholder="+1 (555) 123-4567">
-          </mat-form-field>
-        </div>
-
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Address</mat-label>
-            <textarea matInput formControlName="address" placeholder="Enter client address" rows="3"></textarea>
-          </mat-form-field>
-        </div>
+  <form [formGroup]="clientForm" (ngSubmit)="onSubmit()" class="p-6 pt-0">
+    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
+      <!-- Name -->
+      <div class="col-span-2">
+        <label for="name" class="block text-sm font-medium text-foreground mb-1">Name *</label>
+        <input id="name" type="text" formControlName="name" placeholder="Enter client name" required 
+               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+        <p *ngIf="clientForm.get('name')?.hasError('required') && clientForm.get('name')?.touched" class="text-xs text-destructive mt-1">Name is required</p>
       </div>
-    </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="onCancel()" [disabled]="loading">
+      <!-- Country -->
+      <div class="col-span-1">
+        <label for="country" class="block text-sm font-medium text-foreground mb-1">Country *</label>
+        <select id="country" formControlName="country" required
+                (change)="onCountryChange($event)"
+                class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+          <option *ngFor="let country of countries" [value]="country">{{ country }}</option>
+          <option value="add-new" class="text-indigo-600 font-semibold">Add New Country...</option>
+        </select>
+        <p *ngIf="clientForm.get('country')?.hasError('required') && clientForm.get('country')?.touched" class="text-xs text-destructive mt-1">Country is required</p>
+      </div>
+
+      <!-- Contact Person -->
+      <div class="col-span-1">
+        <label for="contactPerson" class="block text-sm font-medium text-foreground mb-1">Contact Person</label>
+        <input id="contactPerson" type="text" formControlName="contactPerson" placeholder="Enter contact person's name"
+               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+      </div>
+
+      <!-- Contact Title -->
+      <div class="col-span-1">
+        <label for="contactTitle" class="block text-sm font-medium text-foreground mb-1">Contact Title</label>
+        <input id="contactTitle" type="text" formControlName="contactTitle" placeholder="Enter contact person's title"
+               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+      </div>
+
+      <!-- Nature of Relationship -->
+      <div class="col-span-2">
+        <label for="relationshipNature" class="block text-sm font-medium text-foreground mb-1">Nature of Relationship</label>
+        <select id="relationshipNature" formControlName="relationshipNature"
+                class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+          <option value="Good">Good</option>
+          <option value="Mature">Mature</option>
+          <option value="Needs Maintenance">Needs Maintenance</option>
+          <option value="Poor">Poor</option>
+        </select>
+      </div>
+
+      <!-- Contact Email -->
+      <div class="col-span-1">
+        <label for="contactEmail" class="block text-sm font-medium text-foreground mb-1">Contact Email</label>
+        <input id="contactEmail" type="email" formControlName="contactEmail" placeholder="email@company.com"
+               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+        <p *ngIf="clientForm.get('contactEmail')?.hasError('email')" class="text-xs text-destructive mt-1">Please enter a valid email address</p>
+      </div>
+
+      <!-- Contact Phone -->
+      <div class="col-span-1">
+        <label for="contactPhone" class="block text-sm font-medium text-foreground mb-1">Contact Phone</label>
+        <input id="contactPhone" type="text" formControlName="contactPhone" placeholder="+1 (555) 123-4567"
+               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+      </div>
+
+      <!-- Address -->
+      <div class="col-span-2">
+        <label for="address" class="block text-sm font-medium text-foreground mb-1">Address</label>
+        <textarea id="address" formControlName="address" placeholder="Enter client address" rows="3"
+                  class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"></textarea>
+      </div>
+    </div>
+
+    <div class="flex justify-end space-x-2 mt-6">
+      <button type="button" (click)="onCancel()" [disabled]="loading"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
         Cancel
       </button>
-      <button mat-raised-button color="primary" type="submit" 
-              [disabled]="clientForm.invalid || loading">
+      <button type="submit" [disabled]="clientForm.invalid || loading"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
         <span *ngIf="loading">Saving...</span>
         <span *ngIf="!loading">{{ isEditMode ? 'Update' : 'Create' }}</span>
       </button>
-    </mat-dialog-actions>
+    </div>
   </form>
 </div>
+

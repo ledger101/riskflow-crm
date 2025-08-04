@@ -86,4 +86,13 @@ export class AuthService {
       return null;
     }
   }
+
+  // Added method to fetch sales team members
+  async getSalesTeamMembers(): Promise<{ id: string; name: string }[]> {
+    return [
+      { id: '1', name: 'Alice' },
+      { id: '2', name: 'Bob' },
+      { id: '3', name: 'Charlie' }
+    ];
+  }
 }

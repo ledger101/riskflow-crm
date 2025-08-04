@@ -42,7 +42,9 @@ export class ClientFormComponent implements OnInit {
     this.clientForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
       country: ['', Validators.required],
-      industry: ['', Validators.required],
+      contactPerson: [''],
+      contactTitle: [''],
+      relationshipNature: ['Good'],
       contactEmail: ['', [Validators.email]],
       contactPhone: [''],
       address: ['']
@@ -56,7 +58,9 @@ export class ClientFormComponent implements OnInit {
       this.clientForm.patchValue({
         name: this.data.client.name,
         country: this.data.client.country,
-        industry: this.data.client.industry,
+        contactPerson: this.data.client.contactPerson,
+        contactTitle: this.data.client.contactTitle,
+        relationshipNature: this.data.client.relationshipNature,
         contactEmail: this.data.client.contactEmail,
         contactPhone: this.data.client.contactPhone,
         address: this.data.client.address
@@ -64,18 +68,26 @@ export class ClientFormComponent implements OnInit {
     }
   }
 
-  loadCountries(): void {
-    this.countriesService.getCountries().then((data: string[]) => {
-      this.countries = data;
-    });
+  async loadCountries(): Promise<void> {
+    this.countries = await this.countriesService.getCountries();
   }
 
-  openAddCountryDialog(): void {
+onCountryChange(event: Event): void {
+  const selectElement = event.target as HTMLSelectElement;
+  if (selectElement.value === 'add-new') {
+    this.openAddCountryDialog();
+    // Reset to previous value if any, or to empty
+    const previousCountry = this.clientForm.get('country')?.value;
+    this.clientForm.get('country')?.setValue(previousCountry === 'add-new' ? '' : previousCountry);
+  }
+}
+
+  async openAddCountryDialog(): Promise<void> {
     const newCountry = prompt('Enter new country name:');
-    if (newCountry) {
-      this.countriesService.addCountry(newCountry).then(() => {
-        this.loadCountries();
-      });
+    if (newCountry && newCountry.trim() !== '') {
+      await this.countriesService.addCountry(newCountry);
+      await this.loadCountries();
+      this.clientForm.get('country')?.setValue(newCountry);
     }
   }
 

@@ -12,7 +12,7 @@ import { SolutionFormComponent } from '../solution-form/solution-form.component'
 })
 export class SolutionListComponent implements OnInit {
   solutions: Solution[] = [];
-  displayedColumns: string[] = ['name', 'description', 'actions'];
+  displayedColumns: string[] = ['name', 'category', 'cost', 'status', 'description', 'actions'];
   loading = false;
 
   constructor(
@@ -38,7 +38,8 @@ export class SolutionListComponent implements OnInit {
 
   openCreateDialog(): void {
     const dialogRef = this.dialog.open(SolutionFormComponent, {
-      width: '500px',
+      width: '600px',
+      maxWidth: '90vw',
       data: { solution: null, mode: 'create' }
     });
 
@@ -51,7 +52,8 @@ export class SolutionListComponent implements OnInit {
 
   openEditDialog(solution: Solution): void {
     const dialogRef = this.dialog.open(SolutionFormComponent, {
-      width: '500px',
+      width: '600px',
+      maxWidth: '90vw',
       data: { solution, mode: 'edit' }
     });
 

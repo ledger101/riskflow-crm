@@ -15,6 +15,8 @@ export class UserFormComponent implements OnInit {
   userForm: FormGroup;
   isEdit = false;
   userId: string | null = null;
+  loading = false;
+  errorMessage: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -23,8 +25,9 @@ export class UserFormComponent implements OnInit {
     private userService: UserService
   ) {
     this.userForm = this.fb.group({
+      name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required],
+      password: [''],
       role: ['', Validators.required]
     });
   }
@@ -36,7 +39,11 @@ export class UserFormComponent implements OnInit {
       this.userService.getUsers().then(users => {
         const user = users.find(u => u.id === this.userId);
         if (user) {
-          this.userForm.patchValue({ email: user.email, role: user.role });
+          this.userForm.patchValue({ 
+            name: user.name || '', 
+            email: user.email, 
+            role: user.role 
+          });
         }
       });
     }
@@ -44,18 +51,28 @@ export class UserFormComponent implements OnInit {
 
   async onSubmit() {
     if (this.userForm.invalid) {
+      console.log('Invalid Form');
+      
       return;
     }
-    const { email, password, role } = this.userForm.value;
+
+    console.log('loading');
+    
+    this.loading = true;
+    this.errorMessage = null;
+
     try {
+      const { name, email, password, role } = this.userForm.value;
       if (this.isEdit && this.userId) {
-        await this.userService.updateUserRole(this.userId, role);
+        await this.userService.updateUser(this.userId, { name, email, role });
       } else {
-        await this.userService.createUser(email, password, role);
+        await this.userService.createUser({ name, email, password, role });
       }
       this.router.navigate(['/admin/users']);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      this.errorMessage = error.message || 'Failed to save user';
+    } finally {
+      this.loading = false;
     }
   }
 }

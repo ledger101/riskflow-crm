@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { OpportunityService } from '../../../core/services/opportunity.service';
 import { ExportService } from '../../../core/services/export.service';
+import { UserService, AppUser } from '../../../core/services/user.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
 import { ExportDialogComponent, ExportConfig } from '../../../shared/components/export-dialog.component';
 
@@ -118,7 +119,7 @@ import { ExportDialogComponent, ExportConfig } from '../../../shared/components/
                   </div>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap text-gray-900">
-                  {{ opp.ownerId }}
+                  {{ getOwnerName(opp.ownerId) }}
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
                   <div class="flex space-x-2">
@@ -162,6 +163,8 @@ export class OpportunitiesListComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   activeStageFilter: string = '';
   showExportDialog = false;
+  users: AppUser[] = [];
+  usersMap: Map<string, AppUser> = new Map();
 
   availableStages = [
     { name: 'Prospecting', key: 'prospecting', bgColor: 'bg-gray-500', textColor: 'text-gray-100' },
@@ -175,6 +178,7 @@ export class OpportunitiesListComponent implements OnInit {
   constructor(
     private opportunityService: OpportunityService,
     private exportService: ExportService,
+    private userService: UserService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -188,11 +192,17 @@ export class OpportunitiesListComponent implements OnInit {
     });
 
     try {
+      // Load users first to create the lookup map
+      const users = await this.userService.getUsers();
+      this.users = users;
+      this.usersMap = new Map(users.map(user => [user.id, user]));
+
+      // Then load opportunities
       const data = await this.opportunityService.getOpportunities();
       this.opportunities = data;
       this.applyFilters();
     } catch (error) {
-      console.error('Error loading opportunities:', error);
+      console.error('Error loading data:', error);
     }
   }
 
@@ -232,6 +242,11 @@ export class OpportunitiesListComponent implements OnInit {
   getStageDisplayName(stageKey: string): string {
     const stage = this.availableStages.find(s => s.key === stageKey);
     return stage ? stage.name : stageKey;
+  }
+
+  getOwnerName(ownerId: string): string {
+    const user = this.usersMap.get(ownerId);
+    return user?.name || ownerId;
   }
 
   getStageColor(stageKey: string): string {

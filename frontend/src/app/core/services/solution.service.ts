@@ -47,7 +47,15 @@ export class SolutionService {
     try {
       const firestore = this.firebaseService.getFirestore();
       const solutionsRef = collection(firestore, 'solutions');
-      const docRef = await addDoc(solutionsRef, solution);
+      
+      const solutionData = {
+        ...solution,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: solution.isActive !== false // Default to true if not specified
+      };
+      
+      const docRef = await addDoc(solutionsRef, solutionData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating solution:', error);
@@ -59,7 +67,13 @@ export class SolutionService {
     try {
       const firestore = this.firebaseService.getFirestore();
       const solutionRef = doc(firestore, 'solutions', id);
-      await updateDoc(solutionRef, solution);
+      
+      const updateData = {
+        ...solution,
+        updatedAt: new Date()
+      };
+      
+      await updateDoc(solutionRef, updateData);
     } catch (error) {
       console.error('Error updating solution:', error);
       throw error;

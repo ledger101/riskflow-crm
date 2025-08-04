@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ClientService } from '../../../core/services/client.service';
+import { CountriesService } from '../../../core/services/countries.service';
 import { Client } from '../../../shared/models/client.model';
 import { ClientFormComponent } from '../client-form/client-form.component';
 
@@ -13,17 +14,16 @@ import { ClientFormComponent } from '../client-form/client-form.component';
 export class ClientListComponent implements OnInit {
   clients: Client[] = [];
   filteredClients: Client[] = [];
-  displayedColumns: string[] = ['name', 'country', 'industry', 'contactEmail', 'actions'];
+  displayedColumns: string[] = ['name', 'country', 'contactEmail', 'actions'];
   loading = false;
-  
+
   // Filter options
   countries: string[] = [];
-  industries: string[] = [];
   selectedCountry = '';
-  selectedIndustry = '';
 
   constructor(
     private clientService: ClientService,
+    private countriesService: CountriesService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -37,7 +37,7 @@ export class ClientListComponent implements OnInit {
     try {
       this.clients = await this.clientService.getClients();
       this.filteredClients = [...this.clients];
-      this.extractFilterOptions();
+      await this.loadCountries();
     } catch (error) {
       this.snackBar.open('Error loading clients', 'Close', { duration: 3000 });
     } finally {
@@ -45,25 +45,23 @@ export class ClientListComponent implements OnInit {
     }
   }
 
-  private extractFilterOptions(): void {
-    const countrySet = new Set(this.clients.map(c => c.country).filter(Boolean));
-    const industrySet = new Set(this.clients.map(c => c.industry).filter(Boolean));
-    
-    this.countries = Array.from(countrySet).sort();
-    this.industries = Array.from(industrySet).sort();
+  private async loadCountries(): Promise<void> {
+    try {
+      this.countries = await this.countriesService.getCountries();
+    } catch (error) {
+      this.snackBar.open('Error loading countries', 'Close', { duration: 3000 });
+    }
   }
 
   applyFilters(): void {
     this.filteredClients = this.clients.filter(client => {
       const matchesCountry = !this.selectedCountry || client.country === this.selectedCountry;
-      const matchesIndustry = !this.selectedIndustry || client.industry === this.selectedIndustry;
-      return matchesCountry && matchesIndustry;
+      return matchesCountry;
     });
   }
 
   clearFilters(): void {
     this.selectedCountry = '';
-    this.selectedIndustry = '';
     this.filteredClients = [...this.clients];
   }
 

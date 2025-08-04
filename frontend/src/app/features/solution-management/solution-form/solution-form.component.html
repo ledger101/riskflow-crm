@@ -1,43 +1,70 @@
-<div class="solution-form-dialog">
-  <h2 mat-dialog-title>{{ getTitle() }}</h2>
+<div class="solution-form-dialog bg-card text-card-foreground rounded-lg shadow-lg">
+  <div class="p-6 border-b">
+    <h2 class="text-lg font-semibold">{{ getTitle() }}</h2>
+    <p class="text-sm text-muted-foreground mt-1">
+      {{ isEditMode ? 'Update solution details below' : 'Create a new solution for your portfolio' }}
+    </p>
+  </div>
   
-  <form [formGroup]="solutionForm" (ngSubmit)="onSubmit()">
-    <mat-dialog-content>
-      <div class="form-fields">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Name</mat-label>
-          <input matInput formControlName="name" placeholder="Enter solution name" required>
-          <mat-error *ngIf="solutionForm.get('name')?.hasError('required')">
-            Name is required
-          </mat-error>
-          <mat-error *ngIf="solutionForm.get('name')?.hasError('minlength')">
-            Name must be at least 2 characters long
-          </mat-error>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" placeholder="Enter solution description" 
-                    rows="4" required></textarea>
-          <mat-error *ngIf="solutionForm.get('description')?.hasError('required')">
-            Description is required
-          </mat-error>
-          <mat-error *ngIf="solutionForm.get('description')?.hasError('minlength')">
-            Description must be at least 10 characters long
-          </mat-error>
-        </mat-form-field>
+  <form [formGroup]="solutionForm" (ngSubmit)="onSubmit()" class="p-6">
+    <div class="space-y-6">
+      
+      <!-- Solution Name -->
+      <div>
+        <label for="name" class="block text-sm font-medium text-foreground mb-1">Solution Name *</label>
+        <input id="name" type="text" formControlName="name" placeholder="Enter solution name" required
+               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        <p *ngIf="solutionForm.get('name')?.hasError('required') && solutionForm.get('name')?.touched" class="text-xs text-destructive mt-1">
+          Solution name is required
+        </p>
       </div>
-    </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="onCancel()" [disabled]="loading">
+      <!-- Cost (USD) -->
+      <div>
+        <label for="cost" class="block text-sm font-medium text-foreground mb-1">Cost (USD) *</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+          <input id="cost" type="number" formControlName="cost" placeholder="0.00" min="0" required
+                 class="flex h-10 w-full rounded-md border border-input bg-background pl-7 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium text-foreground mb-1">Description *</label>
+        <textarea id="description" formControlName="description" placeholder="Describe the solution..." rows="4" required
+                  class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"></textarea>
+      </div>
+
+      <!-- Active Toggle -->
+      <div class="flex items-center space-x-4">
+        <button type="button" role="switch" [attr.aria-checked]="solutionForm.get('isActive')?.value" (click)="solutionForm.get('isActive')?.setValue(!solutionForm.get('isActive')?.value)"
+                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                [ngClass]="{'bg-primary': solutionForm.get('isActive')?.value, 'bg-input': !solutionForm.get('isActive')?.value}">
+          <span aria-hidden="true"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out"
+                [ngClass]="{'translate-x-5': solutionForm.get('isActive')?.value, 'translate-x-0': !solutionForm.get('isActive')?.value}"></span>
+        </button>
+        <div>
+          <label class="text-sm font-medium text-foreground">Active</label>
+          <p class="text-sm text-muted-foreground">This solution is available for new opportunities</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Form Actions -->
+    <div class="flex justify-end space-x-2 pt-6 mt-6 border-t">
+      <button type="button" (click)="onCancel()" [disabled]="loading"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
         Cancel
       </button>
-      <button mat-raised-button color="primary" type="submit" 
-              [disabled]="solutionForm.invalid || loading">
-        <span *ngIf="loading">Saving...</span>
-        <span *ngIf="!loading">{{ isEditMode ? 'Update' : 'Create' }}</span>
+      <button type="submit" [disabled]="solutionForm.invalid || loading"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+        <span *ngIf="loading">{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
+        <span *ngIf="!loading">{{ isEditMode ? 'Update Solution' : 'Create Solution' }}</span>
       </button>
-    </mat-dialog-actions>
+    </div>
   </form>
 </div>
+

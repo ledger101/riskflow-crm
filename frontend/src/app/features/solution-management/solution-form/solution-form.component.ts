@@ -30,7 +30,10 @@ export class SolutionFormComponent implements OnInit {
     this.isEditMode = data.mode === 'edit';
     this.solutionForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
-      description: ['', [Validators.required, Validators.minLength(10)]]
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      cost: [0, [Validators.required, Validators.min(0)]],
+      category: [''],
+      isActive: [true]
     });
   }
 
@@ -38,9 +41,28 @@ export class SolutionFormComponent implements OnInit {
     if (this.isEditMode && this.data.solution) {
       this.solutionForm.patchValue({
         name: this.data.solution.name,
-        description: this.data.solution.description
+        description: this.data.solution.description,
+        cost: this.data.solution.cost || 0,
+        category: this.data.solution.category || '',
+        isActive: this.data.solution.isActive !== false
       });
     }
+  }
+
+  // Available solution categories
+  get categories(): string[] {
+    return [
+      'Software Development',
+      'Data Analytics',
+      'Cloud Solutions',
+      'Cybersecurity',
+      'Digital Transformation',
+      'Business Intelligence',
+      'Mobile Applications',
+      'Web Development',
+      'Infrastructure',
+      'Consulting'
+    ];
   }
 
   async onSubmit(): Promise<void> {
