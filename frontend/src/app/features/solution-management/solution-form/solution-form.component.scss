@@ -2,20 +2,98 @@
   .form-fields {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    min-width: 400px;
+    gap: 20px;
+    min-width: 480px;
+    padding-top: 8px;
   }
   
   .full-width {
     width: 100%;
   }
+
+  // Enhanced styling for Angular Material filled form fields
+  ::ng-deep mat-form-field.mat-mdc-form-field {
+    &.mat-form-field-appearance-fill {
+      .mat-mdc-text-field-wrapper {
+        border-radius: 4px 4px 0 0;
+        
+        .mat-mdc-form-field-flex {
+          min-height: 56px;
+          padding-top: 8px;
+          
+          .mat-mdc-floating-label {
+            font-size: 16px;
+            color: rgba(0, 0, 0, 0.6);
+            
+            &.mdc-floating-label--float-above {
+              font-size: 12px;
+              transform: translateY(-50%) scale(1);
+              color: #1976d2;
+            }
+          }
+        }
+        
+        .mat-mdc-form-field-infix {
+          padding: 8px 12px 12px 12px;
+          min-height: 40px;
+          border-top: none;
+          
+          input, textarea {
+            padding: 4px 0;
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.125;
+          }
+          
+          textarea {
+            resize: vertical;
+            min-height: 80px;
+          }
+        }
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        margin-top: 4px;
+        font-size: 12px;
+        padding: 0 12px;
+      }
+    }
+
+    // Ensure proper spacing between fields
+    margin-bottom: 4px;
+    
+    // Handle focus state
+    &.mat-focused {
+      .mat-mdc-floating-label {
+        color: #1976d2;
+      }
+    }
+    
+    // Handle error state
+    &.mat-form-field-invalid {
+      .mat-mdc-floating-label {
+        color: #f44336;
+      }
+    }
+  }
   
   mat-dialog-content {
-    padding: 20px 24px;
+    padding: 24px;
+    overflow: visible;
+    min-height: 200px;
   }
   
   mat-dialog-actions {
     padding: 16px 24px;
-    gap: 8px;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  // Improve dialog title spacing
+  h2[mat-dialog-title] {
+    margin-bottom: 16px;
+    font-size: 24px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
   }
 }
