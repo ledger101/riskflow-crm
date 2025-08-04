@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { OpportunityService } from '../../../core/services/opportunity.service';
 import { ClientService } from '../../../core/services/client.service';
 import { SolutionService } from '../../../core/services/solution.service';
@@ -110,7 +111,7 @@ import { UserService } from '../../../core/services/user.service';
     </div>
   `
 })
-export class OpportunityFormComponent implements OnInit {
+export class OpportunityFormComponent implements OnInit, OnDestroy {
   opportunityForm: FormGroup;
   clients: Client[] = [];
   solutions: Solution[] = [];
@@ -120,6 +121,7 @@ export class OpportunityFormComponent implements OnInit {
   isEditMode = false;
   opportunityId: string | null = null;
   changeLogs: { date: string; user: string; description: string }[] = [];
+  private solutionChangeSubscription?: Subscription;
 
   constructor(
     private fb: FormBuilder,
@@ -155,9 +157,31 @@ export class OpportunityFormComponent implements OnInit {
       this.opportunityForm.patchValue({ ownerId: currentUser.uid });
     }
 
+    // Set up auto-fill functionality for solution cost in create mode
+    if (!this.isEditMode) {
+      this.setupSolutionAutoFill();
+    }
+
     if (this.isEditMode && this.opportunityId) {
       await this.loadOpportunity(this.opportunityId);
     }
+  }
+
+  ngOnDestroy() {
+    if (this.solutionChangeSubscription) {
+      this.solutionChangeSubscription.unsubscribe();
+    }
+  }
+
+  private setupSolutionAutoFill() {
+    this.solutionChangeSubscription = this.opportunityForm.get('solutionId')?.valueChanges.subscribe(solutionId => {
+      if (solutionId && this.solutions.length > 0) {
+        const selectedSolution = this.solutions.find(solution => solution.id === solutionId);
+        if (selectedSolution && selectedSolution.cost !== undefined) {
+          this.opportunityForm.patchValue({ value: selectedSolution.cost }, { emitEvent: false });
+        }
+      }
+    });
   }
 
   async loadClients() {
