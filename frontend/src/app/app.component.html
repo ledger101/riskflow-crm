@@ -48,6 +48,10 @@
             <mat-icon>business_center</mat-icon>
             <span>Clients</span>
           </a>
+          <a mat-menu-item routerLink="/admin/pipeline-stages" routerLinkActive="active-menu-item">
+            <mat-icon>timeline</mat-icon>
+            <span>Pipeline Stages</span>
+          </a>
         </mat-menu>
       </nav>
       
@@ -71,21 +75,16 @@
         </div>
 
         <div *ngIf="!loading" class="space-y-4">
-          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <!-- <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <span class="text-gray-700">Firebase Connection</span>
             <div class="flex items-center">
               <div 
                 class="w-3 h-3 rounded-full mr-2"
                 [ngClass]="firebaseHealthy ? 'bg-green-500' : 'bg-red-500'"
               ></div>
-              <span 
-                class="text-sm font-medium"
-                [ngClass]="firebaseHealthy ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ firebaseHealthy ? 'Connected' : 'Disconnected' }}
-              </span>
+              <span class="text-sm font-medium" [ngClass]="firebaseHealthy ? 'text-green-600' : 'text-red-600'">{{ firebaseHealthy ? 'Connected' : 'Disconnected' }}</span>
             </div>
-          </div>
+          </div> -->
 
           <div 
             class="p-4 rounded-lg text-center"
@@ -110,12 +109,11 @@
 
           <div class="text-xs text-gray-500 mt-6">
             <p>Angular 18.x</p>
-            <p>Firebase SDK Ready</p>
-            <p>Story 1.1 - Initial Setup Complete</p>
+            <p>Riskflow SDK Ready</p>
+            <p>Story 3.4 - Processing and Reporting complete</p>
           </div>
         </div>
       </div>
     </div>
   </div>
- 
 </ng-template>

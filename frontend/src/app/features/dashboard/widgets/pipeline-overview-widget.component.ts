@@ -3,10 +3,13 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { OpportunityService } from '../../../core/services/opportunity.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
+import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
+import { PipelineStage as DomainPipelineStage } from '../../../shared/models/pipeline-stage.model';
 
-interface PipelineStage {
+interface PipelineStageDisplay {
+  id: string;
   name: string;
-  key: string;
+  key: string; // slug of name for routing/filtering
   count: number;
   value: number;
   percentage: number;
@@ -67,10 +70,13 @@ interface PipelineStage {
             </div>
           </div>
         </div>
+        <div *ngIf="!isLoading && pipelineStages.length === 0" class="text-center text-sm text-gray-500 py-4">
+          No pipeline stages configured yet.
+        </div>
       </div>
 
       <!-- Pipeline Summary -->
-      <div class="pt-4 border-t border-gray-200">
+      <div class="pt-4 border-t border-gray-200" *ngIf="pipelineStages.length > 0">
         <div class="grid grid-cols-3 gap-4 text-center">
           <div>
             <p class="text-2xl font-bold text-blue-600">{{ totalOpportunities }}</p>
@@ -96,23 +102,27 @@ interface PipelineStage {
   `
 })
 export class PipelineOverviewWidgetComponent implements OnInit {
-  pipelineStages: PipelineStage[] = [];
+  pipelineStages: PipelineStageDisplay[] = [];
   totalOpportunities = 0;
   totalValue = 0;
   averageDealSize = 0;
   isLoading = false;
 
-  private readonly stageDefinitions = [
-    { name: 'Prospecting', key: 'prospecting', color: 'bg-gray-400', bgColor: 'bg-gray-50', textColor: 'text-gray-700' },
-    { name: 'Qualification', key: 'qualification', color: 'bg-blue-400', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
-    { name: 'Proposal', key: 'proposal', color: 'bg-yellow-400', bgColor: 'bg-yellow-50', textColor: 'text-yellow-700' },
-    { name: 'Negotiation', key: 'negotiation', color: 'bg-orange-400', bgColor: 'bg-orange-50', textColor: 'text-orange-700' },
-    { name: 'Closed Won', key: 'closed-won', color: 'bg-green-400', bgColor: 'bg-green-50', textColor: 'text-green-700' },
-    { name: 'Closed Lost', key: 'closed-lost', color: 'bg-red-400', bgColor: 'bg-red-50', textColor: 'text-red-700' }
+  // Color palettes to assign dynamically (extend as needed)
+  private readonly colorPalette = [
+    { color: 'bg-gray-400', bg: 'bg-gray-50', text: 'text-gray-700' },
+    { color: 'bg-blue-400', bg: 'bg-blue-50', text: 'text-blue-700' },
+    { color: 'bg-yellow-400', bg: 'bg-yellow-50', text: 'text-yellow-700' },
+    { color: 'bg-orange-400', bg: 'bg-orange-50', text: 'text-orange-700' },
+    { color: 'bg-green-400', bg: 'bg-green-50', text: 'text-green-700' },
+    { color: 'bg-red-400', bg: 'bg-red-50', text: 'text-red-700' },
+    { color: 'bg-indigo-400', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+    { color: 'bg-teal-400', bg: 'bg-teal-50', text: 'text-teal-700' }
   ];
 
   constructor(
     private opportunityService: OpportunityService,
+    private pipelineStageService: PipelineStageService,
     private router: Router
   ) {}
 
@@ -121,10 +131,13 @@ export class PipelineOverviewWidgetComponent implements OnInit {
   }
 
   private async loadPipelineData(): Promise<void> {
+    this.isLoading = true;
     try {
-      this.isLoading = true;
-      const opportunities = await this.opportunityService.getOpportunities();
-      this.calculatePipelineStages(opportunities);
+      const [stages, opportunities] = await Promise.all([
+        this.pipelineStageService.getStagesPromise(),
+        this.opportunityService.getOpportunities()
+      ]);
+      this.buildPipeline(stages, opportunities);
     } catch (error) {
       console.error('Error loading pipeline data:', error);
     } finally {
@@ -132,27 +145,43 @@ export class PipelineOverviewWidgetComponent implements OnInit {
     }
   }
 
-  private calculatePipelineStages(opportunities: Opportunity[]): void {
-    this.totalOpportunities = opportunities.length;
-    this.totalValue = opportunities.reduce((sum, opp) => sum + (opp.value || 0), 0);
-    this.averageDealSize = this.totalOpportunities > 0 ? this.totalValue / this.totalOpportunities : 0;
+  private slugify(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
 
-    this.pipelineStages = this.stageDefinitions.map(stageDef => {
-      const stageOpportunities = opportunities.filter(opp => opp.stage === stageDef.key);
-      const stageValue = stageOpportunities.reduce((sum, opp) => sum + (opp.value || 0), 0);
-      const percentage = this.totalValue > 0 ? (stageValue / this.totalValue) * 100 : 0;
-      
-      return {
-        name: stageDef.name,
-        key: stageDef.key,
-        count: stageOpportunities.length,
-        value: stageValue,
-        percentage: Math.round(percentage),
-        color: stageDef.color,
-        bgColor: stageDef.bgColor,
-        textColor: stageDef.textColor
-      };
-    });
+  private buildPipeline(stages: DomainPipelineStage[], opportunities: Opportunity[]): void {
+    this.totalOpportunities = opportunities.length;
+    this.totalValue = opportunities.reduce((sum, o) => sum + (o.value || 0), 0);
+    this.averageDealSize = this.totalOpportunities ? this.totalValue / this.totalOpportunities : 0;
+
+    // Map stages dynamically
+    const displayStages: PipelineStageDisplay[] = stages
+      .sort((a, b) => a.order - b.order)
+      .map((stage, idx) => {
+        const key = this.slugify(stage.name);
+        // Match opportunities where stage field matches (id | name | slug)
+        const matching = opportunities.filter(o => {
+          const normalized = o.stage?.toLowerCase?.();
+            return normalized === stage.id.toLowerCase() ||
+                   normalized === stage.name.toLowerCase() ||
+                   normalized === key;
+        });
+        const value = matching.reduce((sum, o) => sum + (o.value || 0), 0);
+        const palette = this.colorPalette[idx % this.colorPalette.length];
+        return {
+          id: stage.id,
+            name: stage.name,
+            key,
+            count: matching.length,
+            value,
+            percentage: this.totalValue ? Math.round((value / this.totalValue) * 100) : 0,
+            color: palette.color,
+            bgColor: palette.bg,
+            textColor: palette.text
+        } as PipelineStageDisplay;
+      });
+
+    this.pipelineStages = displayStages;
   }
 
   getFunnelWidth(index: number): number {
@@ -168,7 +197,6 @@ export class PipelineOverviewWidgetComponent implements OnInit {
   }
 
   navigateToStage(stageKey: string): void {
-    // Navigate to opportunities list with stage filter
     this.router.navigate(['/opportunities'], { 
       queryParams: { 
         stage: stageKey,

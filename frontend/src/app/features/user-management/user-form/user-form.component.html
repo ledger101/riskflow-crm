@@ -1,14 +1,14 @@
-<div class="p-8 max-w-md mx-auto">
-  <h2 class="text-2xl font-bold mb-4">{{ isEdit ? 'Edit User' : 'Create User' }}</h2>
-  <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
-    <div class="mb-4">
+<div class="p-8 max-w-md mx-auto space-y-4">
+  <h2 class="text-2xl font-bold">{{ isEdit ? 'Edit User' : 'Create User' }}</h2>
+  <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="space-y-4">
+    <div>
       <label class="block mb-1">Name</label>
       <input type="text" formControlName="name" class="w-full border rounded px-3 py-2" />
       <div *ngIf="userForm.get('name')?.touched && userForm.get('name')?.invalid" class="text-red-500 text-sm">
         <div *ngIf="userForm.get('name')?.errors?.['required']">Name is required</div>
       </div>
     </div>
-    <div class="mb-4">
+    <div>
       <label class="block mb-1">Email</label>
       <input type="email" formControlName="email" class="w-full border rounded px-3 py-2" />
       <div *ngIf="userForm.get('email')?.touched && userForm.get('email')?.invalid" class="text-red-500 text-sm">
@@ -16,14 +16,12 @@
         <div *ngIf="userForm.get('email')?.errors?.['email']">Enter a valid email</div>
       </div>
     </div>
-    <div *ngIf="!isEdit" class="mb-4">
-      <label class="block mb-1">Password</label>
-      <input type="password" formControlName="password" class="w-full border rounded px-3 py-2" />
-      <div *ngIf="userForm.get('password')?.touched && userForm.get('password')?.invalid" class="text-red-500 text-sm">
-        <div *ngIf="userForm.get('password')?.errors?.['required']">Password is required</div>
-      </div>
+    <div *ngIf="!isEdit">
+      <label class="block mb-1">Password (optional)</label>
+      <input type="password" formControlName="password" class="w-full border rounded px-3 py-2" placeholder="Leave blank to send invite link" />
+      <div class="text-xs text-gray-500 mt-1">If left blank, an email sign-in link will be sent so the user can set their own password.</div>
     </div>
-    <div class="mb-4">
+    <div>
       <label class="block mb-1">Role</label>
       <select formControlName="role" class="w-full border rounded px-3 py-2">
         <option value="Admin">Admin</option>
@@ -34,12 +32,17 @@
         <div *ngIf="userForm.get('role')?.errors?.['required']">Role is required</div>
       </div>
     </div>
-    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" [disabled]="loading">
-      <span *ngIf="loading">Processing...</span>
-      <span *ngIf="!loading">{{ isEdit ? 'Update User' : 'Create User' }}</span>
-    </button>
-    <div *ngIf="errorMessage" class="text-red-500 text-sm mt-2">
-      {{ errorMessage }}
+    <div class="flex items-center space-x-2">
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" [disabled]="loading">
+        <span *ngIf="loading">Processing...</span>
+        <span *ngIf="!loading">{{ isEdit ? 'Update User' : 'Save User' }}</span>
+      </button>
+      <button type="button" *ngIf="!isEdit" (click)="sendInvite()" [disabled]="inviting || userForm.get('email')?.invalid || userForm.get('role')?.invalid" class="bg-green-600 text-white px-4 py-2 rounded">
+        <span *ngIf="!inviting">Send Invite</span>
+        <span *ngIf="inviting">Sending...</span>
+      </button>
     </div>
+    <div *ngIf="inviteSent" class="text-green-600 text-sm">Invitation sent successfully.</div>
+    <div *ngIf="errorMessage" class="text-red-500 text-sm">{{ errorMessage }}</div>
   </form>
 </div>

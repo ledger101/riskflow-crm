@@ -6,9 +6,11 @@ import { OpportunityService } from '../../../core/services/opportunity.service';
 import { ClientService } from '../../../core/services/client.service';
 import { SolutionService } from '../../../core/services/solution.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
 import { Client } from '../../../shared/models/client.model';
 import { Solution } from '../../../shared/models/solution.model';
 import { Opportunity } from '../../../shared/models/opportunity.model';
+import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
 import { UserService } from '../../../core/services/user.service';
 
 @Component({
@@ -17,9 +19,16 @@ import { UserService } from '../../../core/services/user.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="max-w-4xl mx-auto bg-card text-card-foreground rounded-lg shadow-lg">
-      <div class="p-6">
-        <h2 class="text-lg font-semibold">{{ isEditMode ? 'Edit Opportunity' : 'Create New Opportunity' }}</h2>
-        <p class="text-sm text-muted">Manage the details for this sales deal.</p>
+      <div class="p-6 flex items-start justify-between">
+        <div>
+          <h2 class="text-lg font-semibold">{{ isEditMode ? 'Edit Opportunity' : 'Create New Opportunity' }}</h2>
+          <p class="text-sm text-muted">Manage the details for this sales deal.</p>
+        </div>
+        <button *ngIf="isEditMode" type="button" (click)="confirmDelete()" [disabled]="loading || deleting"
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium bg-red-600 hover:bg-red-700 text-white h-9 px-3 py-1 disabled:opacity-50">
+          <span *ngIf="!deleting">Delete</span>
+          <span *ngIf="deleting" class="flex items-center"><span class="animate-spin mr-2 h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>Deleting...</span>
+        </button>
       </div>
       <div class="tabs">
         <div class="tab" *ngIf="isEditMode">
@@ -45,6 +54,7 @@ import { UserService } from '../../../core/services/user.service';
               <div class="col-span-2">
                 <label for="solutionId" class="block text-sm font-medium text-foreground mb-1">Solution(s) *</label>
                 <select id="solutionId" formControlName="solutionId" required
+                (change)="getOpportunityValue()"
                         class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                   <option value="">Select a solution</option>
                   <option *ngFor="let solution of solutions" [value]="solution.id">{{ solution.name }}</option>
@@ -59,21 +69,17 @@ import { UserService } from '../../../core/services/user.service';
 
               <div class="col-span-1">
                 <label for="value" class="block text-sm font-medium text-foreground mb-1">Value ($) *</label>
-                <input type="number" id="value" formControlName="value" [readOnly]="!isEditMode" required
+                <input type="number" id="value" formControlName="value" [readOnly]="true" required
                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
               </div>
 
               <div class="col-span-1">
                 <label for="stage" class="block text-sm font-medium text-foreground mb-1">Stage *</label>
                 <select id="stage" formControlName="stage" required
+                        (change)="onStageChange($event)"
                         class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                   <option value="">Select a stage</option>
-                  <option value="Lead">Lead</option>
-                  <option value="Qualified">Qualified</option>
-                  <option value="Proposal">Proposal</option>
-                  <option value="Negotiation">Negotiation</option>
-                  <option value="Awarded">Awarded</option>
-                  <option value="Lost">Lost</option>
+                  <option *ngFor="let stage of stages" [value]="stage.id">{{ stage.name }}</option>
                 </select>
               </div>
 
@@ -111,15 +117,28 @@ import { UserService } from '../../../core/services/user.service';
   `
 })
 export class OpportunityFormComponent implements OnInit {
+  selectedSolution: Solution | undefined;
+  getOpportunityValue() {
+    const formValue = this.opportunityForm.value;
+    const targetSolution = this.solutions.find(s => s.id === formValue.solutionId);
+    
+    if (targetSolution) {
+      this.opportunityForm.patchValue({
+        value: targetSolution.cost
+      });
+    }
+  }
   opportunityForm: FormGroup;
   clients: Client[] = [];
   solutions: Solution[] = [];
+  stages: PipelineStage[] = [];
   owners: { id: string; name?: string; email?: string; role?: string }[] = [];
   loading = false;
   errorMessage: string | null = null;
   isEditMode = false;
   opportunityId: string | null = null;
   changeLogs: { date: string; user: string; description: string }[] = [];
+  deleting = false;
 
   constructor(
     private fb: FormBuilder,
@@ -128,6 +147,7 @@ export class OpportunityFormComponent implements OnInit {
     private solutionService: SolutionService,
     private authService: AuthService,
     private userService: UserService,
+    private pipelineStageService: PipelineStageService,
     private router: Router,
     private route: ActivatedRoute
   ) {
@@ -137,7 +157,7 @@ export class OpportunityFormComponent implements OnInit {
       description: ['', Validators.required],
       value: [0, [Validators.required, Validators.min(0)]],
       probability: [25, [Validators.required, Validators.min(0), Validators.max(100)]],
-      stage: ['Lead', Validators.required],
+      stage: ['', Validators.required],
       ownerId: ['', Validators.required]
     });
   }
@@ -148,6 +168,7 @@ export class OpportunityFormComponent implements OnInit {
 
     await this.loadClients();
     await this.loadSolutions();
+    await this.loadStages();
     await this.loadOwners();
 
     const currentUser = this.authService.getCurrentUser();
@@ -176,11 +197,27 @@ export class OpportunityFormComponent implements OnInit {
     }
   }
 
+  async loadStages() {
+    try {
+      this.stages = await this.pipelineStageService.getStagesPromise();
+    } catch (error) {
+      console.error('Error loading stages:', error);
+    }
+  }
+
   async loadOwners() {
     try {
       this.owners = await this.userService.getUsers();
     } catch (error) {
       console.error('Error loading owners:', error);
+    }
+  }
+
+  onStageChange(event: any) {
+    const stageId = event.target.value;
+    const selectedStage = this.stages.find(s => s.id === stageId);
+    if (selectedStage) {
+      this.opportunityForm.get('probability')?.setValue(selectedStage.defaultProbability);
     }
   }
 
@@ -216,12 +253,13 @@ export class OpportunityFormComponent implements OnInit {
       const formValue = this.opportunityForm.value;
 
       const selectedClient = this.clients.find(c => c.id === formValue.clientId);
-      const selectedSolution = this.solutions.find(s => s.id === formValue.solutionId);
+      this.selectedSolution = this.solutions.find(s => s.id === formValue.solutionId);
 
       const opportunityData = {
         ...formValue,
         clientName: selectedClient?.name || '',
-        solutionName: selectedSolution?.name || ''
+        solutionName: this.selectedSolution?.name || '',
+        
       };
 
       if (this.isEditMode && this.opportunityId) {
@@ -240,5 +278,20 @@ export class OpportunityFormComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/opportunities']);
+  }
+
+  async confirmDelete() {
+    if (!this.isEditMode || !this.opportunityId) return;
+    if (!confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) return;
+    this.deleting = true;
+    try {
+      await this.opportunityService.deleteOpportunity(this.opportunityId);
+      this.router.navigate(['/opportunities']);
+    } catch (e) {
+      console.error('Delete failed', e);
+      alert('Failed to delete opportunity');
+    } finally {
+      this.deleting = false;
+    }
   }
 }

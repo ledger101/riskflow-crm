@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { Firestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, Timestamp, deleteDoc } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { Opportunity } from '../../shared/models/opportunity.model';
 
@@ -39,5 +39,10 @@ export class OpportunityService {
   async updateOpportunity(id: string, updates: Partial<Opportunity>): Promise<void> {
     const docRef = doc(this.firestore, 'opportunities', id);
     await updateDoc(docRef, updates);
+  }
+
+  async deleteOpportunity(id: string): Promise<void> {
+    const docRef = doc(this.firestore, 'opportunities', id);
+    await deleteDoc(docRef);
   }
 }

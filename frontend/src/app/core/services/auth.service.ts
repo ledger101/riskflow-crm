@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Auth, signInWithEmailAndPassword, signOut, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, signInWithEmailAndPassword, signOut, User, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, updatePassword } from 'firebase/auth';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
+import { UserService } from './user.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,14 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private firebaseService: FirebaseService) {
+  // Action Code Settings for email link sign-in
+  private actionCodeSettings = {
+    // The deep link (must be whitelisted in Firebase console)
+    url: 'https://riskflow-crm.web.app/set-password',
+    handleCodeInApp: true
+  };
+
+  constructor(private firebaseService: FirebaseService, private userService: UserService) {
     this.auth = this.firebaseService.getAuth();
     
     // Listen for auth state changes
@@ -94,5 +102,41 @@ export class AuthService {
       { id: '2', name: 'Bob' },
       { id: '3', name: 'Charlie' }
     ];
+  }
+
+  // ---- Email Link (Passwordless) Invitation Flow ----
+  async sendSignInLink(email: string): Promise<void> {
+    await sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings);
+    // Store email locally for completion
+    window.localStorage.setItem('pendingEmail', email);
+  }
+
+  isEmailLink(url?: string): boolean {
+    return isSignInWithEmailLink(this.auth, url || window.location.href);
+  }
+
+  async completeEmailLinkSignIn(url?: string, email?: string): Promise<User> {
+    const link = url || window.location.href;
+    let finalEmail = email;
+    if (!finalEmail) {
+      finalEmail = window.localStorage.getItem('pendingEmail') || '';
+      if (!finalEmail) throw new Error('Email required to complete sign-in');
+    }
+    const cred = await signInWithEmailLink(this.auth, finalEmail, link);
+    window.localStorage.removeItem('pendingEmail');
+    // Mark user confirmed (placeholder update) – ignore errors silently
+    try { await this.userService.markUserConfirmed(cred.user.uid, finalEmail); } catch { }
+    return cred.user;
+  }
+
+  async setInitialPassword(newPassword: string): Promise<void> {
+    const user = this.getCurrentUser();
+    if (!user) throw new Error('No authenticated user');
+    await updatePassword(user, newPassword);
+    // Optional: mark user as initialized
+    try {
+      const firestore = this.firebaseService.getFirestore();
+      await updateDoc(doc(firestore, 'userRoles', user.uid), { passwordSet: true });
+    } catch (e) { /* ignore if doc missing */ }
   }
 }

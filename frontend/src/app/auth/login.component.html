@@ -1,7 +1,8 @@
 <div class="min-h-screen flex items-center justify-center">
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="bg-white p-8 rounded shadow-md w-full max-w-sm">
-    <h2 class="text-xl font-bold mb-4">Login</h2>
-    <div class="mb-4">
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="bg-white p-8 rounded shadow-md w-full max-w-sm space-y-4">
+    <h2 class="text-xl font-bold">{{ linkMode ? 'Email Link Sign-In' : 'Login' }}</h2>
+
+    <div>
       <label for="email" class="block mb-1">Email</label>
       <input id="email" type="email" formControlName="email" class="w-full border rounded px-3 py-2" />
       <div *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.invalid" class="text-red-500 text-sm">
@@ -9,16 +10,34 @@
         <div *ngIf="loginForm.get('email')?.errors?.['email']">Enter a valid email</div>
       </div>
     </div>
-    <div class="mb-4">
+
+    <div *ngIf="!linkMode">
       <label for="password" class="block mb-1">Password</label>
       <input id="password" type="password" formControlName="password" class="w-full border rounded px-3 py-2" />
       <div *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid" class="text-red-500 text-sm">
         <div *ngIf="loginForm.get('password')?.errors?.['required']">Password is required</div>
       </div>
     </div>
-    <div *ngIf="errorMessage" class="text-red-500 mb-4">{{ errorMessage }}</div>
+
+    <div *ngIf="linkMode && !linkCompleted" class="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+      Enter your email and we'll send you a secure sign-in link.
+    </div>
+    <div *ngIf="linkCompleted" class="text-sm text-green-600 bg-green-50 p-2 rounded">
+      Link verified. Redirecting to password setup...
+    </div>
+
+    <div *ngIf="errorMessage" class="text-red-500 text-sm">{{ errorMessage }}</div>
+
     <button type="submit" [disabled]="loading" class="w-full bg-blue-500 text-white py-2 rounded">
-      {{ loading ? 'Logging in...' : 'Login' }}
+      <span *ngIf="!linkMode">{{ loading ? 'Logging in...' : 'Login' }}</span>
+      <span *ngIf="linkMode">{{ loading ? 'Sending...' : 'Send Sign-In Link' }}</span>
     </button>
+
+    <div class="text-xs text-gray-500 text-center" *ngIf="!linkMode">
+      <a href="#" (click)="$event.preventDefault(); linkMode = true; loginForm.get('password')?.disable();" class="text-blue-600 hover:underline">Use email link instead</a>
+    </div>
+    <div class="text-xs text-gray-500 text-center" *ngIf="linkMode && !linkCompleted">
+      <a href="#" (click)="$event.preventDefault(); linkMode = false; loginForm.get('password')?.enable();" class="text-blue-600 hover:underline">Use password instead</a>
+    </div>
   </form>
 </div>

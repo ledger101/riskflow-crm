@@ -9,6 +9,7 @@
         <th class="px-4 py-2 border">Name</th>
         <th class="px-4 py-2 border">Email</th>
         <th class="px-4 py-2 border">Role</th>
+        <th class="px-4 py-2 border">Status</th>
         <th class="px-4 py-2 border">Actions</th>
       </tr>
     </thead>
@@ -17,6 +18,10 @@
         <td class="px-4 py-2 border">{{ user.name }}</td>
         <td class="px-4 py-2 border">{{ user.email }}</td>
         <td class="px-4 py-2 border">{{ user.role }}</td>
+        <td class="px-4 py-2 border">
+          <span *ngIf="user.confirmed" class="text-green-600 font-medium">Confirmed</span>
+          <span *ngIf="!user.confirmed" class="text-yellow-600 font-medium">Invited</span>
+        </td>
         <td class="px-4 py-2 border">
           <button (click)="editUser(user.id)" class="bg-green-500 text-white px-2 py-1 rounded">Edit</button>
         </td>

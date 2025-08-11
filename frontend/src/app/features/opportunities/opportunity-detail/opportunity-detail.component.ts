@@ -9,6 +9,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
 import { Communication } from '../../../shared/models/communication.model';
 import { ActionItem } from '../../../shared/models/action-item.model';
+import { UserService, AppUser } from '../../../core/services/user.service';
 
 @Component({
   selector: 'app-opportunity-detail',
@@ -69,7 +70,7 @@ import { ActionItem } from '../../../shared/models/action-item.model';
               </div>
               <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">Owner</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ opportunity.ownerId }}</dd>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ ownerName }}</dd>
               </div>
               <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">Created</dt>
@@ -258,11 +259,19 @@ import { ActionItem } from '../../../shared/models/action-item.model';
   `
 })
 export class OpportunityDetailComponent implements OnInit {
+getOwnerName(ownerId: string): string {
+  // console.log(ownerId);
+  
+    const user = this.usersMap.get(ownerId);
+    return user?.name || ownerId;
+  }
   opportunity: Opportunity | null = null;
   communications: Communication[] = [];
   actionItems: ActionItem[] = [];
   loading = true;
-  
+  ownerName: string = '';
+  users: AppUser[] = [];
+    usersMap: Map<string, AppUser> = new Map();
   // Form states
   showCommunicationForm = false;
   showActionItemForm = false;
@@ -280,6 +289,7 @@ export class OpportunityDetailComponent implements OnInit {
     private communicationService: CommunicationService,
     private actionItemService: ActionItemService,
     private authService: AuthService,
+    private userService: UserService,
     private fb: FormBuilder
   ) {
     this.communicationForm = this.fb.group({
@@ -332,6 +342,11 @@ export class OpportunityDetailComponent implements OnInit {
     if (id) {
       await this.loadOpportunity(id);
       if (this.opportunity) {
+          const users = await this.userService.getUsers();
+      this.users = users;
+      this.usersMap = new Map(users.map(user => [user.id, user]));
+         this.ownerName =  this.getOwnerName(this.opportunity.ownerId) ;
+      console.log(this.ownerName);
         await Promise.all([
           this.loadCommunications(id),
           this.loadActionItems(id)
@@ -345,6 +360,8 @@ export class OpportunityDetailComponent implements OnInit {
       console.log('Loading opportunity with ID:', id);
       this.opportunity = await this.opportunityService.getOpportunityById(id);
       console.log('Loaded opportunity:', this.opportunity);
+   
+      
       if (!this.opportunity) {
         console.error('Opportunity not found with ID:', id);
       }

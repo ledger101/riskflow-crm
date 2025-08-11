@@ -7,6 +7,8 @@ import { ExportService } from '../../../core/services/export.service';
 import { UserService, AppUser } from '../../../core/services/user.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
 import { ExportDialogComponent, ExportConfig } from '../../../shared/components/export-dialog.component';
+import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
+import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
 
 @Component({
   selector: 'app-opportunities-list',
@@ -53,10 +55,10 @@ import { ExportDialogComponent, ExportConfig } from '../../../shared/components/
           </button>
           <button 
             *ngFor="let stage of availableStages"
-            (click)="filterByStage(stage.key)"
-            [ngClass]="activeStageFilter === stage.key ? 'text-white ' + stage.bgColor : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+            (click)="filterByStage(stage.id)"
+            [ngClass]="activeStageFilter === stage.id ? 'text-white bg-blue-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
             class="px-3 py-1 rounded-md text-sm font-medium transition-colors">
-            {{ stage.name }} ({{ getStageCount(stage.key) }})
+            {{ stage.name }} ({{ getStageCount(stage.id) }})
           </button>
         </div>
       </div>
@@ -165,20 +167,13 @@ export class OpportunitiesListComponent implements OnInit {
   showExportDialog = false;
   users: AppUser[] = [];
   usersMap: Map<string, AppUser> = new Map();
-
-  availableStages = [
-    { name: 'Prospecting', key: 'prospecting', bgColor: 'bg-gray-500', textColor: 'text-gray-100' },
-    { name: 'Qualification', key: 'qualification', bgColor: 'bg-blue-500', textColor: 'text-blue-100' },
-    { name: 'Proposal', key: 'proposal', bgColor: 'bg-yellow-500', textColor: 'text-yellow-100' },
-    { name: 'Negotiation', key: 'negotiation', bgColor: 'bg-orange-500', textColor: 'text-orange-100' },
-    { name: 'Closed Won', key: 'closed-won', bgColor: 'bg-green-500', textColor: 'text-green-100' },
-    { name: 'Closed Lost', key: 'closed-lost', bgColor: 'bg-red-500', textColor: 'text-red-100' }
-  ];
+  availableStages: PipelineStage[] = [];
 
   constructor(
     private opportunityService: OpportunityService,
     private exportService: ExportService,
     private userService: UserService,
+    private pipelineStageService: PipelineStageService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -192,6 +187,7 @@ export class OpportunitiesListComponent implements OnInit {
     });
 
     try {
+      await this.loadStages();
       // Load users first to create the lookup map
       const users = await this.userService.getUsers();
       this.users = users;
@@ -206,8 +202,17 @@ export class OpportunitiesListComponent implements OnInit {
     }
   }
 
+  async loadStages() {
+    try {
+      this.availableStages = await this.pipelineStageService.getStagesPromise();
+    } catch (error) {
+      console.error('Error loading stages:', error);
+    }
+  }
+
   private applyFilters(): void {
     let filtered = [...this.opportunities];
+    console.log(this.activeStageFilter);
     
     if (this.activeStageFilter) {
       filtered = filtered.filter(opp => opp.stage === this.activeStageFilter);
@@ -217,11 +222,11 @@ export class OpportunitiesListComponent implements OnInit {
     this.applySorting();
   }
 
-  filterByStage(stageKey: string): void {
-    this.activeStageFilter = stageKey;
+  filterByStage(stageId: string): void {
+    this.activeStageFilter = stageId;
     
     // Update URL to reflect filter
-    const queryParams = stageKey ? { stage: stageKey } : {};
+    const queryParams = stageId ? { stage: stageId } : {};
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams,
@@ -235,13 +240,13 @@ export class OpportunitiesListComponent implements OnInit {
     this.filterByStage('');
   }
 
-  getStageCount(stageKey: string): number {
-    return this.opportunities.filter(opp => opp.stage === stageKey).length;
+  getStageCount(stageId: string): number {
+    return this.opportunities.filter(opp => opp.stage === stageId).length;
   }
 
-  getStageDisplayName(stageKey: string): string {
-    const stage = this.availableStages.find(s => s.key === stageKey);
-    return stage ? stage.name : stageKey;
+  getStageDisplayName(stageId: string): string {
+    const stage = this.availableStages.find(s => s.id === stageId);
+    return stage ? stage.name : stageId;
   }
 
   getOwnerName(ownerId: string): string {
@@ -249,11 +254,14 @@ export class OpportunitiesListComponent implements OnInit {
     return user?.name || ownerId;
   }
 
-  getStageColor(stageKey: string): string {
-    const stage = this.availableStages.find(s => s.key === stageKey);
-    if (!stage) return 'bg-gray-100 text-gray-800';
-    
-    return `${stage.bgColor} ${stage.textColor}`;
+  getStageColor(stageId: string): string {
+    const stageName = this.getStageDisplayName(stageId).toLowerCase();
+    if (stageName.includes('closed won')) return 'bg-green-500 text-green-100';
+    if (stageName.includes('closed lost')) return 'bg-red-500 text-red-100';
+    if (stageName.includes('proposal')) return 'bg-yellow-500 text-yellow-100';
+    if (stageName.includes('negotiation')) return 'bg-orange-500 text-orange-100';
+    if (stageName.includes('qualification')) return 'bg-blue-500 text-blue-100';
+    return 'bg-gray-500 text-gray-100';
   }
 
   getProbabilityColor(probability: number): string {
