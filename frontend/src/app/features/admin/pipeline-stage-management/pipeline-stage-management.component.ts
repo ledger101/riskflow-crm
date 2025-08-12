@@ -264,6 +264,7 @@ export class PipelineStageManagementComponent implements OnInit {
         await this.pipelineStageService.addStage(stageData);
       }
       
+      this.loadStages();
       this.closeForm();
     } catch (error) {
       console.error('Error saving stage:', error);
@@ -282,6 +283,7 @@ export class PipelineStageManagementComponent implements OnInit {
     
     try {
       await this.pipelineStageService.deleteStage(stage.id);
+      this.loadStages();
     } catch (error) {
       console.error('Error deleting stage:', error);
       alert('Failed to delete stage. Please try again.');
