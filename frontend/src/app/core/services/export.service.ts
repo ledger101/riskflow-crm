@@ -48,7 +48,7 @@ export class ExportService {
         this.escapeCSV(opp.clientName),
         this.escapeCSV(opp.description),
         opp.value || 0,
-        this.escapeCSV(this.getStageDisplayName(opp.stage)),
+  this.escapeCSV(this.getStageDisplayName(opp.stageId || opp.stage)),
         opp.probability || 0,
         this.escapeCSV(opp.ownerId),
         opp.createdAt ? this.formatDate(opp.createdAt.toDate ? opp.createdAt.toDate() : new Date(opp.createdAt)) : ''
@@ -90,7 +90,7 @@ export class ExportService {
         <td>${opp.clientName}</td>
         <td>${opp.description}</td>
         <td>$${(opp.value || 0).toLocaleString()}</td>
-        <td>${this.getStageDisplayName(opp.stage)}</td>
+  <td>${this.getStageDisplayName(opp.stageId || opp.stage)}</td>
         <td>${opp.probability || 0}%</td>
         <td>${opp.ownerId}</td>
         <td>${opp.createdAt ? this.formatDate(opp.createdAt.toDate ? opp.createdAt.toDate() : new Date(opp.createdAt)) : ''}</td>

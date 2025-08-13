@@ -3,6 +3,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { CommonModule } from '@angular/common';
+import { FirebaseService } from '../core/services/firebase.service';
+import { doc, getDoc } from 'firebase/firestore';
 
 @Component({
   selector: 'app-login',
@@ -21,7 +23,8 @@ export class LoginComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private firebaseService: FirebaseService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -68,9 +71,17 @@ export class LoginComponent implements OnInit {
   async completeLink(email: string) {
     this.loading = true; this.errorMessage = null;
     try {
-      await this.authService.completeEmailLinkSignIn(undefined, email);
+      const user = await this.authService.completeEmailLinkSignIn(undefined, email);
       this.linkCompleted = true;
-      this.router.navigate(['/set-password']);
+      // Check passwordSet flag in userRoles
+      try {
+        const fs = this.firebaseService.getFirestore();
+        const roleDoc = await getDoc(doc(fs, 'userRoles', user.uid));
+        const needsPassword = !roleDoc.exists() || !roleDoc.data()['passwordSet'];
+        this.router.navigate([needsPassword ? '/set-password' : '/']);
+      } catch {
+        this.router.navigate(['/set-password']);
+      }
     } catch (e: any) { this.errorMessage = e.message || 'Link sign-in failed'; }
     finally { this.loading = false; }
   }

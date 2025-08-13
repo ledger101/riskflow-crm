@@ -1,9 +1,40 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Generic allow list for public readable collections can be added explicitly if needed
+
+    // Pipeline stages: readable to authenticated users, writes restricted (placeholder simple rule)
+    match /pipelineStages/{stageId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null; // TODO: restrict to admin role
+    }
+
+    // Opportunities collection with validation on stageId and probability bounds
+    match /opportunities/{opportunityId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && isValidOpportunity(request.resource.data);
+      allow update: if request.auth != null && isValidOpportunity(request.resource.data);
+      allow delete: if request.auth != null; // TODO: restrict to owners/admin
+    }
+
+    // Fallback deny for everything else
     match /{document=**} {
-      allow read, write: if
-          request.time < timestamp.date(2027, 9, 16);
+      allow read, write: if false;
+    }
+
+    function isValidOpportunity(data) {
+      return data.keys().hasAll(['clientId','solutionId','value','probability','stageId','ownerId']) &&
+             data.clientId is string &&
+             data.solutionId is string &&
+             data.ownerId is string &&
+             data.value is number && data.value >= 0 &&
+             data.probability is number && data.probability >= 0 && data.probability <= 100 &&
+             data.stageId is string && stageExists(data.stageId);
+    }
+
+    function stageExists(stageId) {
+      return exists(/databases/$(database)/documents/pipelineStages/$(stageId));
     }
   }
 }

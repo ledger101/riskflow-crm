@@ -16,7 +16,7 @@ export class AuthService {
   // Action Code Settings for email link sign-in
   private actionCodeSettings = {
     // The deep link (must be whitelisted in Firebase console)
-    url: 'https://riskflow-crm.web.app/set-password',
+    url: window.location.origin + '/login?source=invite',
     handleCodeInApp: true
   };
 

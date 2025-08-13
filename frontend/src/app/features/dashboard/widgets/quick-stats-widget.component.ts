@@ -82,11 +82,12 @@ export class QuickStatsWidgetComponent implements OnInit {
 
   private calculateQuickStats(opportunities: Opportunity[]): void {
     const totalOpportunities = opportunities.length;
-    const activeOpportunities = opportunities.filter(opp => 
-      !['closed-won', 'closed-lost'].includes(opp.stage)
-    ).length;
-    const wonOpportunities = opportunities.filter(opp => opp.stage === 'closed-won').length;
-    const lostOpportunities = opportunities.filter(opp => opp.stage === 'closed-lost').length;
+    const activeOpportunities = opportunities.filter(opp => {
+      const stageKey = (opp.stageId || opp.stage || '').toLowerCase();
+      return !['closed-won', 'closed-lost'].includes(stageKey);
+    }).length;
+    const wonOpportunities = opportunities.filter(opp => (opp.stageId || opp.stage) === 'closed-won').length;
+    const lostOpportunities = opportunities.filter(opp => (opp.stageId || opp.stage) === 'closed-lost').length;
 
     // Calculate conversion rate
     const conversionRate = totalOpportunities > 0 
@@ -94,7 +95,7 @@ export class QuickStatsWidgetComponent implements OnInit {
       : 0;
 
     // Calculate average deal size
-    const wonDeals = opportunities.filter(opp => opp.stage === 'closed-won');
+  const wonDeals = opportunities.filter(opp => (opp.stageId || opp.stage) === 'closed-won');
     this.avgDealSize = wonDeals.length > 0 
       ? wonDeals.reduce((sum, opp) => sum + (opp.value || 0), 0) / wonDeals.length 
       : 0;

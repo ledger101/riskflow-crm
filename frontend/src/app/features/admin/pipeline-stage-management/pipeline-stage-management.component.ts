@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
 import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-pipeline-stage-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DragDropModule],
   template: `
     <div class="p-8">
       <div class="flex justify-between items-center mb-6">
@@ -16,7 +17,7 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
           <h1 class="text-2xl font-bold">Pipeline Stage Management</h1>
           <p class="text-gray-600">Manage sales pipeline stages and their default probabilities</p>
         </div>
-        <div class="flex space-x-3">
+        <div class="flex space-x-3" *ngIf="!pendingReorder; else reorderActions">
           <button 
             (click)="openCreateForm()"
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
@@ -28,6 +29,15 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
           </a>
         </div>
       </div>
+
+      <ng-template #reorderActions>
+        <div class="flex space-x-3 items-center">
+          <span class="text-sm text-gray-600" *ngIf="!orderSaving">Reorder pending – remember to save</span>
+          <span class="text-sm text-gray-600" *ngIf="orderSaving">Saving order...</span>
+          <button (click)="saveReorder()" [disabled]="orderSaving" class="bg-green-500 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded">Save Order</button>
+          <button (click)="cancelReorder()" [disabled]="orderSaving" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
+        </div>
+      </ng-template>
 
       <!-- Form Modal -->
       <div *ngIf="showForm" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -104,6 +114,7 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
+                <th class="px-2 py-3"></th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Order
                 </th>
@@ -118,10 +129,13 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                 </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr *ngFor="let stage of stages" class="hover:bg-gray-50">
+            <tbody cdkDropList (cdkDropListDropped)="drop($event)" class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let stage of stages; let i = index" cdkDrag class="hover:bg-gray-50">
+                <td class="px-2 py-4 cursor-move" cdkDragHandle title="Drag to reorder">
+                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9h.01M8 15h.01M12 9h.01M12 15h.01M16 9h.01M16 15h.01"/></svg>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ stage.order }}
+                  {{ i }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">{{ stage.name }}</div>
@@ -173,6 +187,11 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
           </div>
         </div>
       </ng-template>
+
+      <!-- Toast Notification -->
+      <div *ngIf="toastMessage" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow text-sm transition-opacity duration-300">
+        {{ toastMessage }}
+      </div>
     </div>
   `
 })
@@ -184,6 +203,12 @@ export class PipelineStageManagementComponent implements OnInit {
   currentStageId: string | null = null;
   saving = false;
   deleting: string | null = null;
+  // Reorder related properties (ensure declared for TS)
+  pendingReorder = false;
+  originalOrderSnapshot: PipelineStage[] | null = null;
+  dropping = false;
+  orderSaving = false;
+  toastMessage: string | null = null;
 
   constructor(
     private pipelineStageService: PipelineStageService,
@@ -194,6 +219,54 @@ export class PipelineStageManagementComponent implements OnInit {
       defaultProbability: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
       order: [0, [Validators.required, Validators.min(0)]]
     });
+  }
+
+  async drop(event: CdkDragDrop<PipelineStage[]>): Promise<void> {
+    if (event.previousIndex === event.currentIndex || this.orderSaving) return;
+    if (!this.pendingReorder) {
+      // Snapshot original order only once at start of a reorder session
+      this.originalOrderSnapshot = this.stages.map(s => ({ ...s }));
+    }
+    moveItemInArray(this.stages, event.previousIndex, event.currentIndex);
+    // Update displayed order numbers locally (not yet persisted)
+    this.stages.forEach((s, idx) => s.order = idx);
+    this.pendingReorder = true;
+  }
+
+  async saveReorder(): Promise<void> {
+    if (!this.pendingReorder || this.orderSaving) return;
+    this.orderSaving = true;
+    try {
+      await this.pipelineStageService.updateStageOrders(this.stages);
+      this.pendingReorder = false;
+      this.originalOrderSnapshot = null;
+      this.showToast('Order saved');
+    } catch (err) {
+      console.error('Reorder save failed', err);
+      alert('Failed to save new order.');
+    } finally {
+      this.orderSaving = false;
+    }
+  }
+
+  cancelReorder(): void {
+    if (!this.pendingReorder || this.orderSaving) return;
+    if (this.originalOrderSnapshot) {
+      // Restore original ordering (ensure sort by original order field)
+      this.stages = this.originalOrderSnapshot
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map(s => ({ ...s }));
+    }
+    this.pendingReorder = false;
+    this.originalOrderSnapshot = null;
+  }
+
+  private showToast(message: string, durationMs = 3000): void {
+    this.toastMessage = message;
+    setTimeout(() => {
+      this.toastMessage = null;
+    }, durationMs);
   }
 
   ngOnInit(): void {

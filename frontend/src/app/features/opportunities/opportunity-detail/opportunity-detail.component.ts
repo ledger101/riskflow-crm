@@ -59,8 +59,8 @@ import { UserService, AppUser } from '../../../core/services/user.service';
                 <dt class="text-sm font-medium text-gray-500">Stage</dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        [ngClass]="getStageClass(opportunity.stage)">
-                    {{ opportunity.stage }}
+                        [ngClass]="getStageClass(opportunity.stageId || opportunity.stage)">
+                    {{ opportunity.stageId || opportunity.stage }}
                   </span>
                 </dd>
               </div>

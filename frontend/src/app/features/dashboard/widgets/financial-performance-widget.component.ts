@@ -1,24 +1,15 @@
 import { Component, OnInit, Injectable } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OpportunityService } from '../../../core/services/opportunity.service';
-import { SettingsService, SalesTargets } from '../../../core/services/settings.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
-
-interface PerformanceMetric {
-  title: string;
-  current: number;
-  target: number;
-  percentage: number;
-  trend: 'up' | 'down' | 'stable';
-  color: string;
-  period: 'quarterly' | 'annual';
-}
+import { SalesTargets } from '../../../shared/models/sales-targets.model';
+import { SettingsService } from '../../../core/services/settings.service';
 
 @Component({
   selector: 'app-financial-performance-widget',
   standalone: true,
   imports: [CommonModule],
-  providers: [OpportunityService, SettingsService],
+  providers: [OpportunityService],
   template: `
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex justify-between items-center mb-4">
@@ -135,22 +126,43 @@ export class FinancialPerformanceWidgetComponent implements OnInit {
   currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
   isLoading = false;
   isAdmin = false; // Would be determined by user role
+  revenue: number = 0;
 
   Math = Math; // Expose Math to template
-
   constructor(
     private opportunityService: OpportunityService,
     private settingsService: SettingsService
   ) {}
-
+  
   ngOnInit(): void {
     this.loadFinancialData();
     this.loadTargets();
+
+    this.opportunityService.getOpportunitiesStream().subscribe({
+      next: (opportunities: Opportunity[]) => {
+        // Only consider opportunities with probability > 70 as revenue
+        this.revenue = opportunities
+          .filter(o => o.probability > 70)
+          .reduce((sum, o) => sum + (o.value || 0), 0);
+      },
+      error: err => {
+        console.error('Error loading opportunities', err);
+      }
+    });
   }
 
   private async loadTargets(): Promise<void> {
     try {
       this.salesTargets = await this.settingsService.getCurrentTargets();
+      // Update performance calculations when targets are loaded
+      if (this.salesTargets) {
+        this.annualPerformance = this.salesTargets.annualTarget
+          ? Math.round((this.annualRevenue / this.salesTargets.annualTarget) * 100)
+          : 0;
+        this.quarterlyPerformance = this.salesTargets.quarterlyTarget
+          ? Math.round((this.quarterlyRevenue / this.salesTargets.quarterlyTarget) * 100)
+          : 0;
+      }
     } catch (error) {
       console.error('Error loading targets:', error);
     }
@@ -178,26 +190,24 @@ export class FinancialPerformanceWidgetComponent implements OnInit {
     const yearStart = this.settingsService.getYearStartDate(currentYear);
     const yearEnd = this.settingsService.getYearEndDate(currentYear);
 
-    // Get won opportunities
-    const wonOpportunities = opportunities.filter(opp => opp.stage === 'closed-won');
-    
-    // Calculate quarterly revenue
-    const quarterlyWonOpps = wonOpportunities.filter(opp => {
+    // Opportunities contributing to revenue are those with probability > 70 (business rule)
+    const revenueOpps = opportunities.filter(o => (o.probability || 0) > 70);
+
+    const quarterlyRevenueOpps = revenueOpps.filter(opp => {
       if (!opp.createdAt) return false;
       const oppDate = opp.createdAt.toDate ? opp.createdAt.toDate() : new Date(opp.createdAt);
       return oppDate >= quarterStart && oppDate <= quarterEnd;
     });
-    
-    // Calculate annual revenue
-    const annualWonOpps = wonOpportunities.filter(opp => {
+
+    const annualRevenueOpps = revenueOpps.filter(opp => {
       if (!opp.createdAt) return false;
       const oppDate = opp.createdAt.toDate ? opp.createdAt.toDate() : new Date(opp.createdAt);
       return oppDate >= yearStart && oppDate <= yearEnd;
     });
 
-    this.quarterlyRevenue = quarterlyWonOpps.reduce((sum, opp) => sum + (opp.value || 0), 0);
-    this.annualRevenue = annualWonOpps.reduce((sum, opp) => sum + (opp.value || 0), 0);
-    this.wonOpportunities = quarterlyWonOpps.length;
+    this.quarterlyRevenue = quarterlyRevenueOpps.reduce((sum, opp) => sum + (opp.value || 0), 0);
+    this.annualRevenue = annualRevenueOpps.reduce((sum, opp) => sum + (opp.value || 0), 0);
+    this.wonOpportunities = quarterlyRevenueOpps.length; // Interpreting as count of high-probability deals this quarter
 
     // Calculate performance percentages
     if (this.salesTargets) {
@@ -212,8 +222,9 @@ export class FinancialPerformanceWidgetComponent implements OnInit {
 
     // Calculate conversion rate
     const totalOpportunities = opportunities.length;
+    // Conversion rate: proportion of high-probability ( >70 ) opportunities relative to total
     this.conversionRate = totalOpportunities > 0 
-      ? Math.round((wonOpportunities.length / totalOpportunities) * 100)
+      ? Math.round((revenueOpps.length / totalOpportunities) * 100)
       : 0;
   }
 

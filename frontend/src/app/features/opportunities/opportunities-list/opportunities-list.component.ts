@@ -107,8 +107,8 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                   <div class="font-semibold text-gray-900">{{ opp.value | currency:'USD':'symbol':'1.0-0' }}</div>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
-                  <span [ngClass]="getStageColor(opp.stage)" class="px-2 py-1 text-xs font-semibold rounded-full">
-                    {{ getStageDisplayName(opp.stage) }}
+                  <span [ngClass]="getStageColor(opp.stageId || opp.stage)" class="px-2 py-1 text-xs font-semibold rounded-full">
+                    {{ getStageDisplayName(opp.stageId || opp.stage) }}
                   </span>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
@@ -214,8 +214,29 @@ export class OpportunitiesListComponent implements OnInit {
     let filtered = [...this.opportunities];
     console.log(this.activeStageFilter);
     
-    if (this.activeStageFilter) {
-      filtered = filtered.filter(opp => opp.stage === this.activeStageFilter);
+  if (this.activeStageFilter) {
+      const stageId = this.activeStageFilter.toLowerCase();
+      // Build lookup maps for slug and name -> id
+      const slugify = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      const stageMatch = this.availableStages.find(s => {
+        const slug = slugify(s.name);
+        return s.id.toLowerCase() === stageId || s.name.toLowerCase() === stageId || slug === stageId;
+      });
+      const effectiveId = stageMatch ? stageMatch.id : this.activeStageFilter; // fallback
+      filtered = filtered.filter(opp => {
+        const oppStage = (opp.stage || '').toLowerCase();
+    const oppStageId = (opp.stageId || '').toLowerCase();
+        if (!oppStage) return false;
+    if (oppStage === effectiveId.toLowerCase()) return true;
+    if (oppStageId && oppStageId === effectiveId.toLowerCase()) return true;
+        // Backward compatibility if opp.stage stored as name or slug
+        if (stageMatch) {
+          const nameLower = stageMatch.name.toLowerCase();
+            const slug = slugify(stageMatch.name);
+      return oppStage === nameLower || oppStage === slug || oppStageId === stageMatch.id.toLowerCase();
+        }
+        return false;
+      });
     }
     
     this.sortedOpportunities = filtered;
@@ -241,7 +262,16 @@ export class OpportunitiesListComponent implements OnInit {
   }
 
   getStageCount(stageId: string): number {
-    return this.opportunities.filter(opp => opp.stage === stageId).length;
+    const slugify = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    const stage = this.availableStages.find(s => s.id === stageId);
+    if (!stage) return 0;
+    const nameLower = stage.name.toLowerCase();
+    const slug = slugify(stage.name);
+    return this.opportunities.filter(opp => {
+      const oppStage = (opp.stage || '').toLowerCase();
+      const oppStageId = (opp.stageId || '').toLowerCase();
+      return oppStage === stageId.toLowerCase() || oppStage === nameLower || oppStage === slug || oppStageId === stageId.toLowerCase();
+    }).length;
   }
 
   getStageDisplayName(stageId: string): string {

@@ -7,7 +7,8 @@ export interface Opportunity {
   ownerId: string;
   description: string;
   value: number;
-  stage: string;
+  stage: string; // legacy: previously stored stage order or id
+  stageId?: string; // canonical pipeline stage document id
   probability: number;
   createdAt: any;
 }

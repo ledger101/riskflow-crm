@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "opportunities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stage", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "actionItems",
       "queryScope": "COLLECTION",
       "fields": [

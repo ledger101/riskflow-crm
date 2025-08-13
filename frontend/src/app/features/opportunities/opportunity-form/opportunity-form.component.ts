@@ -74,8 +74,8 @@ import { UserService } from '../../../core/services/user.service';
               </div>
 
               <div class="col-span-1">
-                <label for="stage" class="block text-sm font-medium text-foreground mb-1">Stage *</label>
-                <select id="stage" formControlName="stage" required
+                <label for="stageId" class="block text-sm font-medium text-foreground mb-1">Stage *</label>
+                <select id="stageId" formControlName="stageId" required
                         (change)="onStageChange($event)"
                         class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                   <option value="">Select a stage</option>
@@ -157,7 +157,7 @@ export class OpportunityFormComponent implements OnInit {
       description: ['', Validators.required],
       value: [0, [Validators.required, Validators.min(0)]],
       probability: [25, [Validators.required, Validators.min(0), Validators.max(100)]],
-      stage: ['', Validators.required],
+  stageId: ['', Validators.required],
       ownerId: ['', Validators.required]
     });
   }
@@ -231,7 +231,7 @@ export class OpportunityFormComponent implements OnInit {
           description: opportunity.description,
           value: opportunity.value,
           probability: opportunity.probability,
-          stage: opportunity.stage,
+          stageId: opportunity.stageId || opportunity.stage,
           ownerId: opportunity.ownerId
         });
       }
@@ -255,11 +255,12 @@ export class OpportunityFormComponent implements OnInit {
       const selectedClient = this.clients.find(c => c.id === formValue.clientId);
       this.selectedSolution = this.solutions.find(s => s.id === formValue.solutionId);
 
+      const selectedStage = this.stages.find(s => s.id === formValue.stageId);
       const opportunityData = {
         ...formValue,
         clientName: selectedClient?.name || '',
         solutionName: this.selectedSolution?.name || '',
-        
+        stageId: selectedStage ? selectedStage.id : formValue.stageId
       };
 
       if (this.isEditMode && this.opportunityId) {

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, Timestamp, deleteDoc } from 'firebase/firestore';
+import { Firestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, Timestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { Observable } from 'rxjs';
 import { FirebaseService } from './firebase.service';
 import { Opportunity } from '../../shared/models/opportunity.model';
 
@@ -15,6 +16,20 @@ export class OpportunityService {
     const coll = collection(this.firestore, 'opportunities');
     const snapshot = await getDocs(coll);
     return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Opportunity));
+  }
+
+  /**
+   * Real-time observable stream of opportunities.
+   */
+  getOpportunitiesStream(): Observable<Opportunity[]> {
+    return new Observable<Opportunity[]>(subscriber => {
+      const coll = collection(this.firestore, 'opportunities');
+      const unsubscribe = onSnapshot(coll, snapshot => {
+        const list = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Opportunity));
+        subscriber.next(list);
+      }, err => subscriber.error(err));
+      return () => unsubscribe();
+    });
   }
 
   async createOpportunity(opportunity: Omit<Opportunity, 'id'>): Promise<string> {

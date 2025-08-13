@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { OpportunityService } from '../../../core/services/opportunity.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
 import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
 import { PipelineStage as DomainPipelineStage } from '../../../shared/models/pipeline-stage.model';
+import { Subscription } from 'rxjs';
 
 interface PipelineStageDisplay {
   id: string;
@@ -101,7 +102,7 @@ interface PipelineStageDisplay {
     </div>
   `
 })
-export class PipelineOverviewWidgetComponent implements OnInit {
+export class PipelineOverviewWidgetComponent implements OnInit, OnDestroy {
   pipelineStages: PipelineStageDisplay[] = [];
   totalOpportunities = 0;
   totalValue = 0;
@@ -120,6 +121,10 @@ export class PipelineOverviewWidgetComponent implements OnInit {
     { color: 'bg-teal-400', bg: 'bg-teal-50', text: 'text-teal-700' }
   ];
 
+  private stagesSub?: Subscription;
+  private oppSub?: Subscription;
+  private opportunities: Opportunity[] = [];
+
   constructor(
     private opportunityService: OpportunityService,
     private pipelineStageService: PipelineStageService,
@@ -127,19 +132,37 @@ export class PipelineOverviewWidgetComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadPipelineData();
+    this.initializeDataFlow();
   }
 
-  private async loadPipelineData(): Promise<void> {
+  ngOnDestroy(): void {
+  this.stagesSub?.unsubscribe();
+  this.oppSub?.unsubscribe();
+  }
+
+  private async initializeDataFlow(): Promise<void> {
     this.isLoading = true;
     try {
-      const [stages, opportunities] = await Promise.all([
-        this.pipelineStageService.getStagesPromise(),
-        this.opportunityService.getOpportunities()
-      ]);
-      this.buildPipeline(stages, opportunities);
+      // Ensure default stages exist (safe no-op if already present)
+      await this.pipelineStageService.seedDefaultStages();
+      // Subscribe to real-time opportunities and stages
+      this.oppSub = this.opportunityService.getOpportunitiesStream().subscribe({
+        next: opps => {
+          this.opportunities = opps;
+          // Rebuild with latest stages if already loaded
+          if (this.pipelineStages.length) {
+            // Use last known stage ids to fetch ordering for rebuild
+            this.pipelineStageService.getStagesPromise().then(stages => this.buildPipeline(stages, this.opportunities));
+          }
+        },
+        error: err => console.error('Opportunities stream error:', err)
+      });
+      this.stagesSub = this.pipelineStageService.getStages().subscribe({
+        next: stages => this.buildPipeline(stages, this.opportunities),
+        error: err => console.error('Pipeline stages stream error:', err)
+      });
     } catch (error) {
-      console.error('Error loading pipeline data:', error);
+      console.error('Error initializing pipeline data flow:', error);
     } finally {
       this.isLoading = false;
     }
@@ -154,7 +177,7 @@ export class PipelineOverviewWidgetComponent implements OnInit {
     this.totalValue = opportunities.reduce((sum, o) => sum + (o.value || 0), 0);
     this.averageDealSize = this.totalOpportunities ? this.totalValue / this.totalOpportunities : 0;
 
-    // Map stages dynamically
+    // Aggregate value for each stage
     const displayStages: PipelineStageDisplay[] = stages
       .sort((a, b) => a.order - b.order)
       .map((stage, idx) => {
@@ -162,22 +185,24 @@ export class PipelineOverviewWidgetComponent implements OnInit {
         // Match opportunities where stage field matches (id | name | slug)
         const matching = opportunities.filter(o => {
           const normalized = o.stage?.toLowerCase?.();
-            return normalized === stage.id.toLowerCase() ||
-                   normalized === stage.name.toLowerCase() ||
-                   normalized === key;
+          const normalizedId = o.stageId?.toLowerCase?.();
+          return normalizedId === stage.id.toLowerCase() ||
+                 normalized === stage.id.toLowerCase() ||
+                 normalized === stage.name.toLowerCase() ||
+                 normalized === key;
         });
-        const value = matching.reduce((sum, o) => sum + (o.value || 0), 0);
+  const value = matching.reduce((sum, o) => sum + Number(o.value || 0), 0);
         const palette = this.colorPalette[idx % this.colorPalette.length];
         return {
           id: stage.id,
-            name: stage.name,
-            key,
-            count: matching.length,
-            value,
-            percentage: this.totalValue ? Math.round((value / this.totalValue) * 100) : 0,
-            color: palette.color,
-            bgColor: palette.bg,
-            textColor: palette.text
+          name: stage.name,
+          key,
+          count: matching.length,
+          value, // aggregated value for this stage
+          percentage: this.totalValue ? Math.round((value / this.totalValue) * 100) : 0,
+          color: palette.color,
+          bgColor: palette.bg,
+          textColor: palette.text
         } as PipelineStageDisplay;
       });
 
@@ -185,10 +210,13 @@ export class PipelineOverviewWidgetComponent implements OnInit {
   }
 
   getFunnelWidth(index: number): number {
-    // Create funnel effect - stages get progressively narrower
+    // Adaptive funnel: reduce width proportionally based on total stage count
+    const total = this.pipelineStages.length || 1;
     const baseWidth = 100;
-    const reduction = index * 8; // 8% reduction per stage
-    return Math.max(baseWidth - reduction, 60); // Minimum 60% width
+    // Target final width ~60% for up to 8 stages, scale to ~70% min for >12 stages to avoid excessive narrowing
+    const minWidth = total > 12 ? 70 : 60;
+    const step = (baseWidth - minWidth) / Math.max(total - 1, 1);
+    return Math.max(baseWidth - step * index, minWidth);
   }
 
   getFunnelMargin(index: number): number {
@@ -197,11 +225,14 @@ export class PipelineOverviewWidgetComponent implements OnInit {
   }
 
   navigateToStage(stageKey: string): void {
-    this.router.navigate(['/opportunities'], { 
-      queryParams: { 
-        stage: stageKey,
+    // stageKey passed in *currently* is slug; find stage id to route consistently by id
+    const target = this.pipelineStages.find(ps => ps.key === stageKey);
+    const routeStage = target ? target.id : stageKey; // fallback to provided key if not found
+    this.router.navigate(['/opportunities'], {
+      queryParams: {
+        stage: routeStage,
         from: 'pipeline-widget'
-      } 
+      }
     });
   }
 }

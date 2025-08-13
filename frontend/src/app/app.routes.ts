@@ -18,6 +18,7 @@ export const routes: Routes = [
     
   },
   { path: 'admin/pipeline-stages', loadComponent: () => import('./features/admin/pipeline-stage-management/pipeline-stage-management.component').then(m => m.PipelineStageManagementComponent) },
+    { path: 'admin/settings', loadComponent: () => import('./features/admin/settings/settings.component').then(m => m.SettingsComponent) },
   { path: 'opportunities', loadComponent: () => import('./features/opportunities/opportunities-list/opportunities-list.component').then(m => m.OpportunitiesListComponent) },
   { path: 'opportunities/create', loadComponent: () => import('./features/opportunities/opportunity-form/opportunity-form.component').then(m => m.OpportunityFormComponent) },
   { path: 'opportunities/:id', loadComponent: () => import('./features/opportunities/opportunity-detail/opportunity-detail.component').then(m => m.OpportunityDetailComponent) },
