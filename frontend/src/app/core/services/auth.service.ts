@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Auth, signInWithEmailAndPassword, signOut, User, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, updatePassword } from 'firebase/auth';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, firstValueFrom } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { UserService } from './user.service';
@@ -12,6 +13,8 @@ export class AuthService {
   private auth: Auth;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private initialized$ = new BehaviorSubject<boolean>(false);
+  public authReady$ = this.initialized$.asObservable().pipe(filter(Boolean));
 
   // Action Code Settings for email link sign-in
   private actionCodeSettings = {
@@ -26,6 +29,7 @@ export class AuthService {
     // Listen for auth state changes
     onAuthStateChanged(this.auth, (user) => {
       this.currentUserSubject.next(user);
+  this.initialized$.next(true);
     });
   }
 
@@ -53,6 +57,14 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return this.getCurrentUser() !== null;
+  }
+
+  async waitForAuthInit(): Promise<void> {
+    try {
+      await firstValueFrom(this.authReady$);
+    } catch {
+      // no-op; treat as not ready
+    }
   }
 
   async isAdmin(): Promise<boolean> {
@@ -106,6 +118,11 @@ export class AuthService {
 
   // ---- Email Link (Passwordless) Invitation Flow ----
   async sendSignInLink(email: string): Promise<void> {
+    // Only allow if email exists in admin-managed users collection
+    const allowed = await this.userService.isEmailAllowed(email);
+    if (!allowed) {
+      throw new Error('This email is not authorized. Please contact your administrator.');
+    }
     await sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings);
     // Store email locally for completion
     window.localStorage.setItem('pendingEmail', email);

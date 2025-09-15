@@ -54,7 +54,10 @@ export class LoginComponent implements OnInit {
         await this.authService.sendSignInLink(this.loginForm.value.email);
         alert('Sign-in link sent. Check your email.');
       } catch (e: any) {
-        this.errorMessage = e.message || 'Failed to send sign-in link';
+        const msg = (e?.message || '').toString();
+        this.errorMessage = msg.includes('not authorized')
+          ? 'Only users added by an administrator can receive a sign-in link.'
+          : (msg || 'Failed to send sign-in link');
       } finally { this.loading = false; }
       return;
     }

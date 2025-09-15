@@ -5,7 +5,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { OpportunityService } from '../../../core/services/opportunity.service';
 import { ExportService } from '../../../core/services/export.service';
 import { UserService, AppUser } from '../../../core/services/user.service';
+import { ClientService } from '../../../core/services/client.service';
 import { Opportunity } from '../../../shared/models/opportunity.model';
+import { Client } from '../../../shared/models/client.model';
 import { ExportDialogComponent, ExportConfig } from '../../../shared/components/export-dialog.component';
 import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
 import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
@@ -72,6 +74,9 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                   Client
                   <i *ngIf="sortField === 'clientName'" [ngClass]="sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
                 </th>
+                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" (click)="sortBy('country')">
+                  Country
+                </th>
                 <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" (click)="sortBy('solutionName')">
                   Solution
                   <i *ngIf="sortField === 'solutionName'" [ngClass]="sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
@@ -92,6 +97,9 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                   Owner
                   <i *ngIf="sortField === 'ownerId'" [ngClass]="sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
                 </th>
+                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" (click)="sortBy('createdAt')">
+                  Date Created
+                </th>
                 <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -99,6 +107,9 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
               <tr *ngFor="let opp of sortedOpportunities" class="hover:bg-gray-50 transition-colors">
                 <td class="py-4 px-4 whitespace-nowrap">
                   <div class="font-medium text-gray-900">{{ opp.clientName }}</div>
+                </td>
+                <td class="py-4 px-4 whitespace-nowrap">
+                  <div class="text-gray-900">{{ getClientCountry(opp.clientId) }}</div>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
                   <div class="text-gray-900">{{ opp.solutionName }}</div>
@@ -124,11 +135,13 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                   {{ getOwnerName(opp.ownerId) }}
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
+                  <div class="text-gray-900">{{ opp.createdAt | date:'mediumDate' }}</div>
+                </td>
+                <td class="py-4 px-4 whitespace-nowrap">
                   <div class="flex space-x-2">
-                    <a [routerLink]="['/opportunities', opp.id]" 
-                       class="text-blue-600 hover:text-blue-800 font-medium">View</a>
-                    <a [routerLink]="['/opportunities', opp.id, 'edit']" 
-                       class="text-green-600 hover:text-green-800 font-medium">Edit</a>
+                    <a [routerLink]="['/opportunities', opp.id]" class="text-blue-600 hover:text-blue-800">
+                      <i class="fas fa-eye"></i>
+                    </a>
                   </div>
                 </td>
               </tr>
@@ -168,12 +181,15 @@ export class OpportunitiesListComponent implements OnInit {
   users: AppUser[] = [];
   usersMap: Map<string, AppUser> = new Map();
   availableStages: PipelineStage[] = [];
+  clients: Client[] = [];
+  clientCountryMap: Map<string, string> = new Map();
 
   constructor(
     private opportunityService: OpportunityService,
     private exportService: ExportService,
     private userService: UserService,
     private pipelineStageService: PipelineStageService,
+    private clientService: ClientService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -192,6 +208,11 @@ export class OpportunitiesListComponent implements OnInit {
       const users = await this.userService.getUsers();
       this.users = users;
       this.usersMap = new Map(users.map(user => [user.id, user]));
+
+      // Load clients and build country map
+      const clients = await this.clientService.getClients();
+      this.clients = clients;
+      this.clientCountryMap = new Map(clients.map(client => [client.id!, client.country]));
 
       // Then load opportunities
       const data = await this.opportunityService.getOpportunities();
@@ -284,6 +305,10 @@ export class OpportunitiesListComponent implements OnInit {
     return user?.name || ownerId;
   }
 
+  getClientCountry(clientId: string): string {
+    return this.clientCountryMap.get(clientId) || '';
+  }
+
   getStageColor(stageId: string): string {
     const stageName = this.getStageDisplayName(stageId).toLowerCase();
     if (stageName.includes('closed won')) return 'bg-green-500 text-green-100';
@@ -329,11 +354,15 @@ export class OpportunitiesListComponent implements OnInit {
         `Stage: ${this.getStageDisplayName(this.activeStageFilter)}` : 
         'All stages';
 
+      const stagesMap = new Map(this.availableStages.map(stage => [stage.id.toLowerCase(), stage]));
+
       await this.exportService.exportOpportunities(this.sortedOpportunities, {
         format: config.format,
         filename: config.filename,
         includeFilters: config.includeFilters,
-        filterInfo: config.includeFilters ? filterInfo : undefined
+        filterInfo: config.includeFilters ? filterInfo : undefined,
+        stagesMap: stagesMap,
+        usersMap: this.usersMap
       });
 
       this.showExportDialog = false;

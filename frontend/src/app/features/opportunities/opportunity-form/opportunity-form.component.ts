@@ -260,16 +260,45 @@ export class OpportunityFormComponent implements OnInit {
         ...formValue,
         clientName: selectedClient?.name || '',
         solutionName: this.selectedSolution?.name || '',
-        stageId: selectedStage ? selectedStage.id : formValue.stageId
+        stageId: selectedStage ? selectedStage.id : formValue.stageId,
+        stage: selectedStage ? selectedStage.name : (this.stages.find(s => s.id === formValue.stageId)?.name || '')
       };
 
       if (this.isEditMode && this.opportunityId) {
-        await this.opportunityService.updateOpportunity(this.opportunityId, opportunityData);
+        const currentUser = this.authService.getCurrentUser();
+        // Prefer auth displayName/email to avoid relying on user directory; fallback to directory name if available
+        let auditUserName = currentUser?.displayName || currentUser?.email || '';
+        if (!auditUserName) {
+          try {
+            const users = await this.userService.getUsers();
+            auditUserName = users.find(u => u.id === currentUser?.uid)?.name || '';
+          } catch {}
+        }
+        await this.opportunityService.updateOpportunity(this.opportunityId, {
+          ...opportunityData,
+          _auditUserId: currentUser?.uid || 'unknown',
+          _auditUserName: auditUserName || 'Unknown'
+        });
+        // Navigate to detail after update
+        this.router.navigate(['/opportunities', this.opportunityId]);
       } else {
-        await this.opportunityService.createOpportunity(opportunityData);
+        const currentUser = this.authService.getCurrentUser();
+        let creatorName = currentUser?.displayName || currentUser?.email || '';
+        if (!creatorName) {
+          try {
+            const users = await this.userService.getUsers();
+            creatorName = users.find(u => u.id === currentUser?.uid)?.name || '';
+          } catch {}
+        }
+        const newId = await this.opportunityService.createOpportunity({
+          ...opportunityData,
+          createdByUserId: currentUser?.uid || 'unknown',
+          createdByUserName: creatorName || 'Unknown'
+        });
+        // Navigate to detail after create
+        this.router.navigate(['/opportunities', newId]);
       }
 
-      this.router.navigate(['/opportunities']);
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to save opportunity';
     } finally {
@@ -278,7 +307,11 @@ export class OpportunityFormComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/opportunities']);
+    if (this.isEditMode && this.opportunityId) {
+      this.router.navigate(['/opportunities', this.opportunityId]);
+    } else {
+      this.router.navigate(['/opportunities']);
+    }
   }
 
   async confirmDelete() {

@@ -6,5 +6,6 @@ export interface ActionItem {
   isComplete: boolean;
   completedAt?: any; // Firestore Timestamp
   createdBy: string;
+  createdByName?: string;
   createdAt: any; // Firestore Timestamp
 }

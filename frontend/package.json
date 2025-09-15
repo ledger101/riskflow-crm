@@ -9,7 +9,8 @@
   "test": "ng test",
   "seed:pipeline-stages": "ts-node tools/seed-pipeline-stages.ts",
   "migrate:opp-stages": "ts-node tools/migrate-opportunity-stages.ts",
-  "migrate:add-stageId-from-order": "ts-node tools/add-stageId-from-order.ts"
+  "migrate:add-stageId-from-order": "ts-node tools/add-stageId-from-order.ts",
+  "migrate:stage-name-from-id": "ts-node tools/migrate-stage-name-from-id.ts"
   },
   "private": true,
   "dependencies": {

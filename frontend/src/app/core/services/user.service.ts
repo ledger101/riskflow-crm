@@ -25,6 +25,25 @@ export class UserService {
     this.firestore = this.firebaseService.getFirestore();
   }
 
+  /**
+   * Returns true if the email exists in admin-managed user records (userRoles collection).
+   * Performs a direct equality query then falls back to a case-insensitive scan for robustness.
+   */
+  async isEmailAllowed(email: string): Promise<boolean> {
+    const candidate = (email || '').trim();
+    if (!candidate) return false;
+
+    // First: direct match (fast path)
+    const directQ = query(collection(this.firestore, 'userRoles'), where('email', '==', candidate));
+    const directSnap = await getDocs(directQ);
+    if (!directSnap.empty) return true;
+
+    // Fallback: case-insensitive compare across small dataset
+    const all = await getDocs(collection(this.firestore, 'userRoles'));
+    const norm = candidate.toLowerCase();
+    return all.docs.some(d => (d.data()['email'] || '').toString().trim().toLowerCase() === norm);
+  }
+
   // Legacy direct creation with password (kept)
   async createUser(userData: { name: string; email: string; password: string; role: string }): Promise<void> {
     const userCred = await createUserWithEmailAndPassword(this.auth, userData.email, userData.password);

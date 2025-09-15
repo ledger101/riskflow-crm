@@ -6,6 +6,7 @@ export interface Communication {
   summary: string;
   attachments?: Attachment[];
   createdBy: string;
+  createdByName?: string;
   createdAt: any; // Firestore Timestamp
 }
 

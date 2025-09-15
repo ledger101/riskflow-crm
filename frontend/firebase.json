@@ -6,14 +6,17 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "source": ".",
+    "site": "riskflow-crm",
+    "public": "dist/frontend/browser",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "frameworksBackend": {
-      "region": "us-central1"
-    }
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
   }
 }
