@@ -11,10 +11,10 @@ import { SettingsService } from '../../../core/services/settings.service';
   imports: [CommonModule],
   providers: [OpportunityService],
   template: `
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Financial Performance</h3>
-        <div class="text-xs text-gray-500">
+    <div class="bg-white rounded-xl shadow-md p-6 h-full">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-900">Financial Performance</h3>
+        <div class="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
           Q{{ currentQuarter }} {{ currentYear }}
         </div>
       </div>
@@ -22,59 +22,55 @@ import { SettingsService } from '../../../core/services/settings.service';
       <!-- Key Metrics -->
       <div class="space-y-6">
         <!-- Annual Performance -->
-        <div class="border-b border-gray-100 pb-4">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-medium text-gray-900">Annual Revenue</h4>
-            <span [ngClass]="getPerformanceColor(annualPerformance)">
+        <div class="border-b border-gray-100 pb-5">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="font-semibold text-gray-900">Annual Revenue</h4>
+            <span [ngClass]="getPerformanceColor(annualPerformance)" class="text-sm font-bold">
               {{ annualPerformance }}%
             </span>
           </div>
           
-          <div class="space-y-2">
+          <div class="space-y-3">
             <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Achieved: {{ annualRevenue | currency }}</span>
-              <span class="text-gray-500">Target: {{ salesTargets?.annualTarget | currency }}</span>
+              <span class="text-gray-600">Achieved</span>
+              <span class="font-semibold text-gray-900">{{ annualRevenue | currency }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Target</span>
+              <span class="font-semibold text-gray-900">{{ salesTargets?.annualTarget | currency }}</span>
             </div>
             
-            <!-- Circular Progress -->
-            <div class="relative w-24 h-24 mx-auto">
-              <svg class="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-                <!-- Background circle -->
-                <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
-                <!-- Progress circle -->
-                <circle 
-                  cx="50" cy="50" r="40" 
-                  stroke="#3b82f6" 
-                  stroke-width="8" 
-                  fill="none"
-                  [attr.stroke-dasharray]="getCircumference()"
-                  [attr.stroke-dashoffset]="getStrokeDashoffset(annualPerformance)"
-                  class="transition-all duration-500"/>
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-lg font-bold text-gray-700">{{ annualPerformance }}%</span>
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-3 mt-2">
+              <div 
+                [ngClass]="'h-3 rounded-full transition-all duration-500 ' + getProgressBarColor(annualPerformance)" 
+                [style.width.%]="Math.min(annualPerformance, 100)">
               </div>
             </div>
           </div>
         </div>
 
         <!-- Quarterly Performance -->
-        <div class="border-b border-gray-100 pb-4">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-medium text-gray-900">Quarterly Revenue</h4>
-            <span [ngClass]="getPerformanceColor(quarterlyPerformance)">
+        <div class="border-b border-gray-100 pb-5">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="font-semibold text-gray-900">Quarterly Revenue</h4>
+            <span [ngClass]="getPerformanceColor(quarterlyPerformance)" class="text-sm font-bold">
               {{ quarterlyPerformance }}%
             </span>
           </div>
           
-          <div class="space-y-2">
+          <div class="space-y-3">
             <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Achieved: {{ quarterlyRevenue | currency }}</span>
-              <span class="text-gray-500">Target: {{ salesTargets?.quarterlyTarget | currency }}</span>
+              <span class="text-gray-600">Achieved</span>
+              <span class="font-semibold text-gray-900">{{ quarterlyRevenue | currency }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Target</span>
+              <span class="font-semibold text-gray-900">{{ salesTargets?.quarterlyTarget | currency }}</span>
             </div>
             
             <!-- Progress Bar -->
-            <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="w-full bg-gray-200 rounded-full h-3 mt-2">
               <div 
                 [ngClass]="'h-3 rounded-full transition-all duration-500 ' + getProgressBarColor(quarterlyPerformance)" 
                 [style.width.%]="Math.min(quarterlyPerformance, 100)">
@@ -84,14 +80,14 @@ import { SettingsService } from '../../../core/services/settings.service';
         </div>
 
         <!-- Additional Metrics -->
-        <div class="grid grid-cols-2 gap-4">
-          <div class="text-center">
-            <p class="text-lg font-bold text-green-600">{{ wonOpportunities }}</p>
-            <p class="text-xs text-gray-500">Deals Won (Q{{ currentQuarter }})</p>
+        <div class="grid grid-cols-2 gap-4 pt-2">
+          <div class="text-center p-3 bg-green-50 rounded-lg">
+            <p class="text-2xl font-bold text-green-600">{{ wonOpportunities }}</p>
+            <p class="text-xs text-gray-600 mt-1">Deals Won (Q{{ currentQuarter }})</p>
           </div>
-          <div class="text-center">
-            <p class="text-lg font-bold text-blue-600">{{ conversionRate }}%</p>
-            <p class="text-xs text-gray-500">Conversion Rate</p>
+          <div class="text-center p-3 bg-blue-50 rounded-lg">
+            <p class="text-2xl font-bold text-blue-600">{{ conversionRate }}%</p>
+            <p class="text-xs text-gray-600 mt-1">Conversion Rate</p>
           </div>
         </div>
       </div>
@@ -100,15 +96,21 @@ import { SettingsService } from '../../../core/services/settings.service';
       <div *ngIf="isAdmin" class="mt-6 pt-4 border-t border-gray-200">
         <button 
           (click)="openTargetSettings()"
-          class="w-full text-center py-2 px-3 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-600 transition-colors">
-          <i class="fas fa-cog mr-2"></i>
+          class="w-full text-center py-2 px-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors">
+          <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
           Manage Targets
         </button>
       </div>
 
       <!-- Real-time Update Indicator -->
       <div class="flex items-center justify-center mt-4 text-xs text-gray-400" *ngIf="isLoading">
-        <i class="fas fa-sync-alt animate-spin mr-1"></i>
+        <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
         Updating performance data...
       </div>
     </div>
