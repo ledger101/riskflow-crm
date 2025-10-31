@@ -19,41 +19,43 @@ interface QuickStat {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold mb-4">Quick Stats</h3>
+    <div class="bg-white rounded-xl shadow-md p-6 h-full">
+      <h3 class="text-xl font-bold text-gray-900 mb-6">Quick Stats</h3>
       
       <div class="space-y-4">
         <div *ngFor="let stat of stats" 
-             class="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-          <div class="flex items-center">
-            <div [ngClass]="'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ' + stat.color">
-              <i [ngClass]="stat.icon + ' text-white'"></i>
+             class="p-4 rounded-lg border-2 border-gray-100 hover:border-gray-200 transition-all">
+          <div class="flex items-center justify-between mb-2">
+            <div [ngClass]="'w-10 h-10 rounded-lg flex items-center justify-center ' + stat.color">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
             </div>
-            <div class="ml-3">
-              <p class="text-sm font-medium text-gray-900">{{ stat.title }}</p>
-              <p class="text-2xl font-bold text-gray-700">{{ stat.value }}</p>
-            </div>
-          </div>
-          
-          <div *ngIf="stat.trend" class="text-right">
-            <span [ngClass]="getTrendClass(stat.trend.direction)">
-              <i [ngClass]="getTrendIcon(stat.trend.direction)"></i>
+            <div *ngIf="stat.trend" [ngClass]="getTrendClass(stat.trend.direction)" class="text-sm font-semibold">
+              <svg *ngIf="stat.trend.direction === 'up'" class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+              <svg *ngIf="stat.trend.direction === 'down'" class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+              </svg>
               {{ stat.trend.value }}%
-            </span>
+            </div>
           </div>
+          <p class="text-sm font-medium text-gray-600 mb-1">{{ stat.title }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ stat.value }}</p>
         </div>
       </div>
 
       <!-- Additional Metrics -->
-      <div class="mt-6 pt-4 border-t border-gray-200">
-        <div class="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <p class="text-lg font-bold text-blue-600">{{ avgDealSize | currency:'USD':'symbol':'1.0-0' }}</p>
-            <p class="text-xs text-gray-500">Avg Deal Size</p>
+      <div class="mt-6 pt-5 border-t border-gray-200">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="text-center p-3 bg-blue-50 rounded-lg">
+            <p class="text-2xl font-bold text-blue-600">{{ avgDealSize | currency:'USD':'symbol':'1.0-0' }}</p>
+            <p class="text-xs text-gray-600 mt-1">Avg Deal Size</p>
           </div>
-          <div>
-            <p class="text-lg font-bold text-purple-600">{{ avgSalesCycle }}d</p>
-            <p class="text-xs text-gray-500">Avg Sales Cycle</p>
+          <div class="text-center p-3 bg-purple-50 rounded-lg">
+            <p class="text-2xl font-bold text-purple-600">{{ avgSalesCycle }}d</p>
+            <p class="text-xs text-gray-600 mt-1">Avg Sales Cycle</p>
           </div>
         </div>
       </div>

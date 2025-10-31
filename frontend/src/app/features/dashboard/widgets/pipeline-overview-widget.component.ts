@@ -26,77 +26,93 @@ interface PipelineStageDisplay {
   template: `
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-semibold">Sales Pipeline Overview</h3>
-        <div class="text-sm text-gray-500">
-          <span class="font-medium">{{ totalOpportunities }}</span> total opportunities
+        <h3 class="text-xl font-bold text-gray-900">Sales Pipeline Overview</h3>
+        <div class="text-sm text-gray-600">
+          <span class="font-semibold">{{ totalOpportunities }}</span> total opportunities
         </div>
       </div>
       
-      <!-- Pipeline Funnel Visualization -->
-      <div class="space-y-3 mb-6">
+      <!-- Pipeline Stage Cards - Equal Size Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
         <div *ngFor="let stage of pipelineStages; let i = index" 
              (click)="navigateToStage(stage.key)"
-             class="relative cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
-             [style.width.%]="getFunnelWidth(i)">
+             class="relative cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 group">
           
-          <!-- Stage Container -->
-          <div [ngClass]="'relative p-4 rounded-lg border-2 border-opacity-20 ' + stage.bgColor + ' border-current'"
-               [style.margin-left.%]="getFunnelMargin(i)">
+          <!-- Stage Card -->
+          <div [ngClass]="'relative p-5 rounded-xl border-2 h-full flex flex-col ' + stage.bgColor"
+               [style.border-color]="getColorHex(stage.color)">
+            
+            <!-- Stage Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div [ngClass]="'w-10 h-10 rounded-lg flex items-center justify-center ' + stage.color">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+              </div>
+            </div>
             
             <!-- Stage Content -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <div [ngClass]="'w-4 h-4 rounded-full mr-3 ' + stage.color"></div>
-                <div>
-                  <h4 class="font-semibold text-gray-900">{{ stage.name }}</h4>
-                  <p class="text-sm text-gray-600">{{ stage.count }} opportunities</p>
+            <div class="flex-1">
+              <h4 class="font-bold text-lg text-gray-900 mb-2">{{ stage.name }}</h4>
+              <div class="space-y-2">
+                <div class="flex items-baseline justify-between">
+                  <span class="text-sm text-gray-600">Value</span>
+                  <span class="font-bold text-xl text-gray-900">{{ stage.value | currency:'USD':'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="flex items-baseline justify-between">
+                  <span class="text-sm text-gray-600">Count</span>
+                  <span class="font-semibold text-lg text-gray-700">{{ stage.count }}</span>
                 </div>
               </div>
-              
-              <div class="text-right">
-                <p class="font-bold text-lg text-gray-900">{{ stage.value | currency }}</p>
-                <p class="text-sm text-gray-500">{{ stage.percentage }}% of total</p>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs text-gray-500">% of Total</span>
+                <span class="text-sm font-semibold text-gray-700">{{ stage.percentage }}%</span>
               </div>
-            </div>
-            
-            <!-- Progress Indicator -->
-            <div class="mt-3 w-full bg-gray-200 rounded-full h-2">
-              <div [ngClass]="'h-2 rounded-full transition-all duration-300 ' + stage.color" 
-                   [style.width.%]="stage.percentage"></div>
-            </div>
-            
-            <!-- Click Indicator -->
-            <div class="absolute top-2 right-2 opacity-60">
-              <i class="fas fa-external-link-alt text-xs text-gray-500"></i>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div [ngClass]="'h-2 rounded-full transition-all duration-500 ' + stage.color" 
+                     [style.width.%]="stage.percentage"></div>
+              </div>
             </div>
           </div>
         </div>
-        <div *ngIf="!isLoading && pipelineStages.length === 0" class="text-center text-sm text-gray-500 py-4">
+        <div *ngIf="!isLoading && pipelineStages.length === 0" class="col-span-full text-center text-sm text-gray-500 py-8">
           No pipeline stages configured yet.
         </div>
       </div>
 
       <!-- Pipeline Summary -->
-      <div class="pt-4 border-t border-gray-200" *ngIf="pipelineStages.length > 0">
-        <div class="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p class="text-2xl font-bold text-blue-600">{{ totalOpportunities }}</p>
-            <p class="text-xs text-gray-500">Total Opportunities</p>
+      <div class="pt-6 border-t border-gray-200" *ngIf="pipelineStages.length > 0">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="text-center p-4 bg-blue-50 rounded-lg">
+            <p class="text-3xl font-bold text-blue-600 mb-1">{{ totalOpportunities }}</p>
+            <p class="text-sm text-gray-600 font-medium">Total Opportunities</p>
           </div>
-          <div>
-            <p class="text-2xl font-bold text-green-600">{{ totalValue | currency:'USD':'symbol':'1.0-0' }}</p>
-            <p class="text-xs text-gray-500">Total Pipeline Value</p>
+          <div class="text-center p-4 bg-green-50 rounded-lg">
+            <p class="text-3xl font-bold text-green-600 mb-1">{{ totalValue | currency:'USD':'symbol':'1.0-0' }}</p>
+            <p class="text-sm text-gray-600 font-medium">Total Pipeline Value</p>
           </div>
-          <div>
-            <p class="text-2xl font-bold text-purple-600">{{ averageDealSize | currency:'USD':'symbol':'1.0-0' }}</p>
-            <p class="text-xs text-gray-500">Avg Deal Size</p>
+          <div class="text-center p-4 bg-purple-50 rounded-lg">
+            <p class="text-3xl font-bold text-purple-600 mb-1">{{ averageDealSize | currency:'USD':'symbol':'1.0-0' }}</p>
+            <p class="text-sm text-gray-600 font-medium">Avg Deal Size</p>
           </div>
         </div>
       </div>
 
       <!-- Real-time Update Indicator -->
       <div class="flex items-center justify-center mt-4 text-xs text-gray-400" *ngIf="isLoading">
-        <i class="fas fa-sync-alt animate-spin mr-1"></i>
+        <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
         Updating pipeline data...
       </div>
     </div>
@@ -209,19 +225,19 @@ export class PipelineOverviewWidgetComponent implements OnInit, OnDestroy {
     this.pipelineStages = displayStages;
   }
 
-  getFunnelWidth(index: number): number {
-    // Adaptive funnel: reduce width proportionally based on total stage count
-    const total = this.pipelineStages.length || 1;
-    const baseWidth = 100;
-    // Target final width ~60% for up to 8 stages, scale to ~70% min for >12 stages to avoid excessive narrowing
-    const minWidth = total > 12 ? 70 : 60;
-    const step = (baseWidth - minWidth) / Math.max(total - 1, 1);
-    return Math.max(baseWidth - step * index, minWidth);
-  }
-
-  getFunnelMargin(index: number): number {
-    // Center alignment as funnel narrows
-    return index * 4; // 4% left margin increase per stage
+  getColorHex(colorClass: string): string {
+    // Map Tailwind color classes to hex values for border-color
+    const colorMap: { [key: string]: string } = {
+      'bg-gray-400': '#9CA3AF',
+      'bg-blue-400': '#60A5FA',
+      'bg-yellow-400': '#FBBF24',
+      'bg-orange-400': '#FB923C',
+      'bg-green-400': '#4ADE80',
+      'bg-red-400': '#F87171',
+      'bg-indigo-400': '#818CF8',
+      'bg-teal-400': '#2DD4BF'
+    };
+    return colorMap[colorClass] || '#9CA3AF';
   }
 
   navigateToStage(stageKey: string): void {
