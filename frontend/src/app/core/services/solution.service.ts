@@ -120,10 +120,17 @@ export class SolutionService {
     try {
       const firestore = this.firebaseService.getFirestore();
       const opportunitiesRef = collection(firestore, 'opportunities');
-      const q = query(opportunitiesRef, where('solutionId', '==', solutionId));
-      const querySnapshot = await getDocs(q);
       
-      return !querySnapshot.empty;
+      // Check both new solutionIds array and legacy solutionId for backward compatibility
+      const newQuery = query(opportunitiesRef, where('solutionIds', 'array-contains', solutionId));
+      const legacyQuery = query(opportunitiesRef, where('solutionId', '==', solutionId));
+      
+      const [newSnapshot, legacySnapshot] = await Promise.all([
+        getDocs(newQuery),
+        getDocs(legacyQuery)
+      ]);
+      
+      return !newSnapshot.empty || !legacySnapshot.empty;
     } catch (error) {
       console.error('Error checking solution associations:', error);
       return false; // Default to false to allow deletion if check fails

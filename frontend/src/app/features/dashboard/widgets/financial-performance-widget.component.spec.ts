@@ -13,6 +13,7 @@ describe('FinancialPerformanceWidgetComponent', () => {
       id: '1',
       clientId: 'client1',
       clientName: 'Client One',
+      clientCountry: 'Ghana',
       solutionId: 'solution1',
       solutionName: 'Solution One',
       ownerId: 'user1',
@@ -26,6 +27,7 @@ describe('FinancialPerformanceWidgetComponent', () => {
       id: '2',
       clientId: 'client2',
       clientName: 'Client Two',
+      clientCountry: 'Ghana',
       solutionId: 'solution2',
       solutionName: 'Solution Two',
       ownerId: 'user2',
@@ -39,6 +41,7 @@ describe('FinancialPerformanceWidgetComponent', () => {
       id: '3',
       clientId: 'client3',
       clientName: 'Client Three',
+      clientCountry: 'Ghana',
       solutionId: 'solution3',
       solutionName: 'Solution Three',
       ownerId: 'user3',
@@ -85,33 +88,17 @@ describe('FinancialPerformanceWidgetComponent', () => {
     component.ngOnInit();
     await fixture.whenStable();
 
-    expect(component.metrics.length).toBe(3);
-    
-    const revenueMetric = component.metrics.find(m => m.title === 'Revenue Generated');
-    const pipelineMetric = component.metrics.find(m => m.title === 'Pipeline Value');
-    const conversionMetric = component.metrics.find(m => m.title === 'Conversion Rate');
-
-    expect(revenueMetric?.current).toBe(300000);
-    expect(pipelineMetric?.current).toBe(150000); // Only proposal stage
-    expect(conversionMetric?.current).toBeCloseTo(66.67, 1); // 2 of 3 opportunities won
+    expect(component.quarterlyRevenue).toBe(300000); // Sum of closed-won opportunities
+    expect(component.annualRevenue).toBe(300000); // Same for annual in this test
+    expect(component.wonOpportunities).toBe(2); // 2 closed-won opportunities
+    expect(component.conversionRate).toBeCloseTo(66.67, 1); // 2 of 3 opportunities with probability > 70
   });
 
-  it('should get correct trend colors', () => {
-    expect(component.getTrendColor('up')).toBe('text-green-600');
-    expect(component.getTrendColor('down')).toBe('text-red-600');
-    expect(component.getTrendColor('stable')).toBe('text-gray-600');
-  });
-
-  it('should get correct trend icons', () => {
-    expect(component.getTrendIcon('up')).toBe('fas fa-arrow-up');
-    expect(component.getTrendIcon('down')).toBe('fas fa-arrow-down');
-    expect(component.getTrendIcon('stable')).toBe('fas fa-minus');
-  });
-
-  it('should calculate progress width correctly', () => {
-    expect(component.getProgressWidth(250, 500)).toBe(50);
-    expect(component.getProgressWidth(600, 500)).toBe(100); // Should cap at 100%
-    expect(component.getProgressWidth(0, 500)).toBe(0);
+  it('should get correct performance colors', () => {
+    expect(component.getPerformanceColor(100)).toBe('text-green-600 font-semibold');
+    expect(component.getPerformanceColor(85)).toBe('text-blue-600 font-semibold');
+    expect(component.getPerformanceColor(65)).toBe('text-yellow-600 font-semibold');
+    expect(component.getPerformanceColor(50)).toBe('text-red-600 font-semibold');
   });
 
   it('should handle empty opportunities array', async () => {
@@ -121,7 +108,9 @@ describe('FinancialPerformanceWidgetComponent', () => {
     await fixture.whenStable();
 
     expect(component.quarterlyRevenue).toBe(0);
-    expect(component.metrics.every(metric => metric.current === 0)).toBe(true);
+    expect(component.annualRevenue).toBe(0);
+    expect(component.wonOpportunities).toBe(0);
+    expect(component.conversionRate).toBe(0);
   });
 
   it('should handle service error gracefully', async () => {

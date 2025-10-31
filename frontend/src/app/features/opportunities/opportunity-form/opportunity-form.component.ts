@@ -52,13 +52,13 @@ import { UserService } from '../../../core/services/user.service';
               </div>
 
               <div class="col-span-2">
-                <label for="solutionId" class="block text-sm font-medium text-foreground mb-1">Solution(s) *</label>
-                <select id="solutionId" formControlName="solutionId" required
+                <label for="solutions" class="block text-sm font-medium text-foreground mb-1">Solution(s) *</label>
+                <select id="solutions" formControlName="solutions" multiple size="4" required
                 (change)="getOpportunityValue()"
-                        class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                  <option value="">Select a solution</option>
-                  <option *ngFor="let solution of solutions" [value]="solution.id">{{ solution.name }}</option>
+                        class="flex min-h-[100px] w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                  <option *ngFor="let solution of solutions" [value]="solution.id">{{ solution.name }} - \${{ solution.cost }}</option>
                 </select>
+                <div class="text-xs text-muted-foreground mt-1">Hold Ctrl/Cmd to select multiple solutions</div>
               </div>
 
               <div class="col-span-2">
@@ -69,7 +69,8 @@ import { UserService } from '../../../core/services/user.service';
 
               <div class="col-span-1">
                 <label for="value" class="block text-sm font-medium text-foreground mb-1">Value ($) *</label>
-                <input type="number" id="value" formControlName="value" [readOnly]="true" required
+                <input type="number" id="value" formControlName="value" required
+                       (input)="onValueManualChange()"
                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
               </div>
 
@@ -117,16 +118,25 @@ import { UserService } from '../../../core/services/user.service';
   `
 })
 export class OpportunityFormComponent implements OnInit {
-  selectedSolution: Solution | undefined;
+  selectedSolutions: Solution[] = [];
+  valueManuallyEdited = false;
+  
   getOpportunityValue() {
-    const formValue = this.opportunityForm.value;
-    const targetSolution = this.solutions.find(s => s.id === formValue.solutionId);
+    if (this.valueManuallyEdited) return; // Don't auto-update if user manually edited
     
-    if (targetSolution) {
-      this.opportunityForm.patchValue({
-        value: targetSolution.cost
-      });
-    }
+    const formValue = this.opportunityForm.value;
+    const selectedSolutionIds = formValue.solutions || [];
+    const selectedSolutions = this.solutions.filter(s => selectedSolutionIds.includes(s.id));
+    
+    const totalCost = selectedSolutions.reduce((sum, solution) => sum + (solution.cost || 0), 0);
+    
+    this.opportunityForm.patchValue({
+      value: totalCost
+    });
+  }
+  
+  onValueManualChange() {
+    this.valueManuallyEdited = true;
   }
   opportunityForm: FormGroup;
   clients: Client[] = [];
@@ -153,7 +163,7 @@ export class OpportunityFormComponent implements OnInit {
   ) {
     this.opportunityForm = this.fb.group({
       clientId: ['', Validators.required],
-      solutionId: ['', Validators.required],
+      solutions: [[], Validators.required], // Array of solution IDs
       description: ['', Validators.required],
       value: [0, [Validators.required, Validators.min(0)]],
       probability: [25, [Validators.required, Validators.min(0), Validators.max(100)]],
@@ -225,15 +235,25 @@ export class OpportunityFormComponent implements OnInit {
     try {
       const opportunity = await this.opportunityService.getOpportunityById(id);
       if (opportunity) {
+        // Handle both new multi-solution format and legacy single solution
+        const solutionIds = opportunity.solutionIds || 
+                           (opportunity.solutionId ? [opportunity.solutionId] : []);
+        
         this.opportunityForm.patchValue({
           clientId: opportunity.clientId,
-          solutionId: opportunity.solutionId,
+          solutions: solutionIds,
           description: opportunity.description,
           value: opportunity.value,
           probability: opportunity.probability,
           stageId: opportunity.stageId || opportunity.stage,
           ownerId: opportunity.ownerId
         });
+        
+        // Mark value as manually edited if it doesn't match the sum of solution costs
+        if (opportunity.solutions) {
+          const totalCost = opportunity.solutions.reduce((sum, s) => sum + (s.cost || 0), 0);
+          this.valueManuallyEdited = opportunity.value !== totalCost;
+        }
       }
     } catch (error) {
       console.error('Error loading opportunity:', error);
@@ -253,13 +273,26 @@ export class OpportunityFormComponent implements OnInit {
       const formValue = this.opportunityForm.value;
 
       const selectedClient = this.clients.find(c => c.id === formValue.clientId);
-      this.selectedSolution = this.solutions.find(s => s.id === formValue.solutionId);
+      const selectedSolutionIds = formValue.solutions || [];
+      this.selectedSolutions = this.solutions.filter(s => selectedSolutionIds.includes(s.id));
 
       const selectedStage = this.stages.find(s => s.id === formValue.stageId);
+      
+      // Build solutions array with full data and solutionIds
+      const solutionsData = this.selectedSolutions.map(s => ({
+        id: s.id,
+        name: s.name,
+        cost: s.cost
+      }));
+      
       const opportunityData = {
         ...formValue,
         clientName: selectedClient?.name || '',
-        solutionName: this.selectedSolution?.name || '',
+        solutions: solutionsData,
+        solutionIds: selectedSolutionIds,
+        // Legacy fields for backward compatibility
+        solutionId: selectedSolutionIds[0] || '',
+        solutionName: this.selectedSolutions[0]?.name || '',
         stageId: selectedStage ? selectedStage.id : formValue.stageId,
         stage: selectedStage ? selectedStage.name : (this.stages.find(s => s.id === formValue.stageId)?.name || '')
       };

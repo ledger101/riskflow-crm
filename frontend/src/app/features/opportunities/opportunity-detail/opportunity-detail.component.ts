@@ -31,7 +31,7 @@ import { ClientService } from '../../../core/services/client.service';
             <div class="flex items-start gap-3 w-1/2 pr-4 min-w-0">
                
               <div>
-                <h1 class="text-3xl font-bold text-gray-900 leading-tight">{{ opportunity.solutionName }}</h1>
+                <h1 class="text-3xl font-bold text-gray-900 leading-tight">{{ getSolutionDisplayText() }}</h1>
                 <p *ngIf="opportunity.description" class="text-gray-600">{{ opportunity.description }}</p>
               </div>
             </div>
@@ -49,6 +49,7 @@ import { ClientService } from '../../../core/services/client.service';
             <div>
               <div class="text-sm font-medium text-gray-500">Value</div>
               <div class="text-xl font-semibold text-blue-700">\${{ opportunity.value | number }}</div>
+              <div *ngIf="getValueBreakdown().isOverridden" class="text-xs text-orange-600">Custom value</div>
             </div>
             <div>
               <div class="text-sm font-medium text-gray-500">Probability</div>
@@ -107,6 +108,24 @@ import { ClientService } from '../../../core/services/client.service';
 
         <!-- Tab Content -->
         <div *ngIf="activeTab === 'communications'">
+          <!-- Solutions breakdown panel -->
+          <div *ngIf="getSolutions().length > 0" class="bg-white rounded-lg border p-4 mb-6">
+            <h3 class="text-lg font-semibold mb-3">Solutions & Value Breakdown</h3>
+            <div class="space-y-2">
+              <div *ngFor="let solution of getSolutions()" class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                <span class="font-medium">{{ solution.name }}</span>
+                <span class="text-gray-600">\${{ solution.cost | number }}</span>
+              </div>
+              <div class="flex justify-between items-center py-2 font-semibold border-t-2">
+                <span>{{ getValueBreakdown().isOverridden ? 'Custom Total' : 'Calculated Total' }}</span>
+                <span class="text-blue-700">\${{ opportunity.value | number }}</span>
+              </div>
+              <div *ngIf="getValueBreakdown().isOverridden" class="text-sm text-orange-600">
+                Auto-calculated: \${{ getValueBreakdown().calculatedTotal | number }}
+              </div>
+            </div>
+          </div>
+          
           <!-- ...existing communications content... -->
           <div class="mt-8">
             <div class="flex justify-between items-center mb-4">
@@ -973,5 +992,45 @@ getOwnerName(ownerId: string): string {
       case 'Lost': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  }
+
+  getSolutions(): Array<{ id: string; name: string; cost?: number }> {
+    if (!this.opportunity) return [];
+    
+    // Use new solutions array if available
+    if (this.opportunity.solutions && this.opportunity.solutions.length > 0) {
+      return this.opportunity.solutions;
+    }
+    
+    // Fallback to legacy single solution
+    if (this.opportunity.solutionId || this.opportunity.solutionName) {
+      return [{
+        id: this.opportunity.solutionId || '',
+        name: this.opportunity.solutionName || 'Unknown Solution',
+        cost: undefined
+      }];
+    }
+    
+    return [];
+  }
+
+  getSolutionDisplayText(): string {
+    if (!this.opportunity) return '';
+    
+    const solutions = this.getSolutions();
+    if (solutions.length === 0) return 'No Solutions';
+    if (solutions.length === 1) return solutions[0].name;
+    
+    return `${solutions[0].name} (+${solutions.length - 1} more)`;
+  }
+
+  getValueBreakdown(): { calculatedTotal: number; isOverridden: boolean } {
+    if (!this.opportunity) return { calculatedTotal: 0, isOverridden: false };
+    
+    const solutions = this.getSolutions();
+    const calculatedTotal = solutions.reduce((sum, s) => sum + (s.cost || 0), 0);
+    const isOverridden = calculatedTotal > 0 && calculatedTotal !== this.opportunity.value;
+    
+    return { calculatedTotal, isOverridden };
   }
 }

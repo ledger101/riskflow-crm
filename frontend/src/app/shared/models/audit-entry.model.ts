@@ -1,4 +1,4 @@
-export type AuditChangeType = 'created' | 'stage' | 'value' | 'probability' | 'description' | 'solution' | 'owner';
+export type AuditChangeType = 'created' | 'stage' | 'value' | 'probability' | 'description' | 'solution' | 'solution_added' | 'solution_removed' | 'owner';
 
 export interface AuditEntry {
   id: string;

@@ -24,7 +24,7 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
           <div *ngIf="activeStageFilter" class="mt-2">
             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               Filtered by: {{ getStageDisplayName(activeStageFilter) }}
-              <button (click)="clearStageFilter()" class="ml-2 text-blue-600 hover:text-blue-800">
+              <button (click)="clearStageFilter()" title="Clear stage filter" class="ml-2 text-blue-600 hover:text-blue-800">
                 <i class="fas fa-times"></i>
               </button>
             </span>
@@ -112,7 +112,7 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                   <div class="text-gray-900">{{ getClientCountry(opp.clientId) }}</div>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
-                  <div class="text-gray-900">{{ opp.solutionName }}</div>
+                  <div class="text-gray-900">{{ getSolutionDisplayText(opp) }}</div>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
                   <div class="font-semibold text-gray-900">{{ opp.value | currency:'USD':'symbol':'1.0-0' }}</div>
@@ -135,7 +135,7 @@ import { PipelineStage } from '../../../shared/models/pipeline-stage.model';
                   {{ getOwnerName(opp.ownerId) }}
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
-                  <div class="text-gray-900">{{ opp.createdAt | date:'mediumDate' }}</div>
+                  <div class="text-gray-900">{{ convertTimestampToDate(opp.createdAt) | date:'mediumDate' }}</div>
                 </td>
                 <td class="py-4 px-4 whitespace-nowrap">
                   <div class="flex space-x-2">
@@ -356,7 +356,13 @@ export class OpportunitiesListComponent implements OnInit {
 
       const stagesMap = new Map(this.availableStages.map(stage => [stage.id.toLowerCase(), stage]));
 
-      await this.exportService.exportOpportunities(this.sortedOpportunities, {
+      // Create a copy of opportunities with clientCountry populated for export
+      const opportunitiesForExport = this.sortedOpportunities.map(opp => ({
+        ...opp,
+        clientCountry: this.getClientCountry(opp.clientId)
+      }));
+
+      await this.exportService.exportOpportunities(opportunitiesForExport, {
         format: config.format,
         filename: config.filename,
         includeFilters: config.includeFilters,
@@ -375,5 +381,35 @@ export class OpportunitiesListComponent implements OnInit {
       // Show error message (you could add a toast service here)
       alert('Export failed. Please try again.');
     }
+  }
+
+  convertTimestampToDate(timestamp: any): Date {
+    if (!timestamp) return new Date();
+    
+    // If it's already a Date object, return it
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+    
+    // If it's a Firestore Timestamp, convert it
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    
+    // If it's a string or number, try to parse it
+    return new Date(timestamp);
+  }
+
+  getSolutionDisplayText(opp: Opportunity): string {
+    // Use new solutions array if available
+    if (opp.solutions && opp.solutions.length > 0) {
+      if (opp.solutions.length === 1) {
+        return opp.solutions[0].name;
+      }
+      return `${opp.solutions[0].name} (+${opp.solutions.length - 1})`;
+    }
+    
+    // Fallback to legacy single solution
+    return opp.solutionName || 'No Solution';
   }
 }

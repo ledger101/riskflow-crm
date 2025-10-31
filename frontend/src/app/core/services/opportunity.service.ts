@@ -35,8 +35,12 @@ export class OpportunityService {
 
   async createOpportunity(opportunity: Omit<Opportunity, 'id'> & { createdByUserId?: string; createdByUserName?: string }): Promise<string> {
     const coll = collection(this.firestore, 'opportunities');
+    
+    // Ensure solutions and solutionIds are in sync
+    const opportunityData = this.normalizeSolutionData(opportunity);
+    
     const docRef = await addDoc(coll, {
-      ...opportunity,
+      ...opportunityData,
       createdAt: Timestamp.now()
     });
     // create audit entry for creation
@@ -71,13 +75,17 @@ export class OpportunityService {
     try {
       before = await this.getOpportunityById(id);
     } catch {}
+    
+    // Normalize solution data before update
+    const normalizedUpdates = this.normalizeSolutionData(updates);
+    
     // strip audit-only fields from write
-    const { _auditUserId, _auditUserName, ...clean } = updates as any;
+    const { _auditUserId, _auditUserName, ...clean } = normalizedUpdates as any;
     await updateDoc(docRef, clean);
 
     // audit for supported changes
     if (before) {
-      const entries: Array<{ type: 'stage' | 'value' | 'probability' | 'description' | 'solution' | 'owner'; oldValue: any; newValue: any }> = [];
+      const entries: Array<{ type: 'stage' | 'value' | 'probability' | 'description' | 'solution' | 'solution_added' | 'solution_removed' | 'owner'; oldValue: any; newValue: any }> = [];
       if (updates.stage || updates.stageId) {
         const oldStage = before.stage || before.stageId;
         const newStage = updates.stage || updates.stageId;
@@ -94,7 +102,28 @@ export class OpportunityService {
       if (typeof updates.description === 'string' && updates.description !== before.description) {
         entries.push({ type: 'description', oldValue: before.description, newValue: updates.description });
       }
-      // solution change: either id or name
+      
+      // Handle solution changes - compare arrays
+      if (updates.solutions || updates.solutionIds) {
+        const oldSolutionIds = before.solutionIds || (before.solutionId ? [before.solutionId] : []);
+        const newSolutionIds = normalizedUpdates.solutionIds || [];
+        
+        // Find added and removed solutions
+        const added = newSolutionIds.filter((id: string) => !oldSolutionIds.includes(id));
+        const removed = oldSolutionIds.filter((id: string) => !newSolutionIds.includes(id));
+        
+        if (added.length > 0) {
+          const addedNames = normalizedUpdates.solutions?.filter((s: any) => added.includes(s.id)).map((s: any) => s.name) || added;
+          entries.push({ type: 'solution_added', oldValue: '', newValue: addedNames.join(', ') });
+        }
+        
+        if (removed.length > 0) {
+          const removedNames = before.solutions?.filter((s: any) => removed.includes(s.id)).map((s: any) => s.name) || removed;
+          entries.push({ type: 'solution_removed', oldValue: removedNames.join(', '), newValue: '' });
+        }
+      }
+      
+      // legacy solution change
       if ((updates.solutionId && updates.solutionId !== before.solutionId) || (updates.solutionName && updates.solutionName !== before.solutionName)) {
         entries.push({ type: 'solution', oldValue: before.solutionName || before.solutionId, newValue: updates.solutionName || updates.solutionId });
       }
@@ -121,5 +150,39 @@ export class OpportunityService {
   async deleteOpportunity(id: string): Promise<void> {
     const docRef = doc(this.firestore, 'opportunities', id);
     await deleteDoc(docRef);
+  }
+
+  /**
+   * Normalizes solution data to ensure solutions and solutionIds are in sync
+   * and provides backward compatibility with legacy solutionId/solutionName
+   */
+  private normalizeSolutionData(data: any): any {
+    const normalized = { ...data };
+    
+    // If solutions array is provided, ensure solutionIds is in sync
+    if (normalized.solutions && Array.isArray(normalized.solutions)) {
+      normalized.solutionIds = normalized.solutions.map((s: any) => s.id).filter(Boolean);
+      
+      // For backward compatibility, set legacy fields to the first solution
+      if (normalized.solutions.length > 0) {
+        normalized.solutionId = normalized.solutions[0].id;
+        normalized.solutionName = normalized.solutions[0].name;
+      }
+    }
+    // If solutionIds is provided but solutions is not, we need solutions data
+    else if (normalized.solutionIds && Array.isArray(normalized.solutionIds) && !normalized.solutions) {
+      // This case might happen during updates - we'll keep solutionIds but warn
+      console.warn('solutionIds provided without solutions data - this may cause display issues');
+    }
+    // Legacy case: if solutionId is provided but no solutions/solutionIds
+    else if (normalized.solutionId && !normalized.solutions && !normalized.solutionIds) {
+      normalized.solutionIds = [normalized.solutionId];
+      // We can't create full solutions array without additional data, so we'll set a minimal one
+      if (normalized.solutionName) {
+        normalized.solutions = [{ id: normalized.solutionId, name: normalized.solutionName }];
+      }
+    }
+    
+    return normalized;
   }
 }

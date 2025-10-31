@@ -141,6 +141,7 @@
 .user-actions {
   display: flex;
   align-items: center;
+  gap: 8px;
   
   .logout-btn {
     color: rgba(255, 255, 255, 0.87) !important;
@@ -158,6 +159,23 @@
     mat-icon {
       font-size: 1.3rem;
     }
+  }
+}
+
+// Migration Status
+.migration-status {
+  border-bottom: 1px solid;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Opportunity } from '../../shared/models/opportunity.model';
 import { PipelineStage } from '../../shared/models/pipeline-stage.model';
 import { AppUser } from './user.service';
+import * as XLSX from 'xlsx';
 
 export interface ExportOptions {
   format: 'excel' | 'pdf';
@@ -35,11 +36,15 @@ export class ExportService {
   }
 
   private async exportToExcel(opportunities: Opportunity[], filename: string, options: ExportOptions): Promise<void> {
-    // For now, create a simple CSV export (would use xlsx library in production)
+    // Create Excel workbook using xlsx library
+    const workbook = XLSX.utils.book_new();
+
+    // Prepare data for Excel
     const headers = [
       'Client Name',
       'Client Country',
-      'Description', 
+      'Solution Name',
+      'Description',
       'Value',
       'Stage',
       'Probability',
@@ -47,27 +52,41 @@ export class ExportService {
       'Created Date'
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...opportunities.map(opp => [
-        this.escapeCSV(opp.clientName),
-        this.escapeCSV(opp.clientCountry || ''),
-        this.escapeCSV(opp.description),
-        opp.value || 0,
-        this.escapeCSV(this.getStageDisplayName(opp.stageId || opp.stage, options.stagesMap)),
-        opp.probability || 0,
-        this.escapeCSV(this.getOwnerName(opp.ownerId, options.usersMap)),
-        opp.createdAt ? this.formatDate(opp.createdAt.toDate ? opp.createdAt.toDate() : new Date(opp.createdAt)) : ''
-      ].join(','))
-    ].join('\n');
+    const data = opportunities.map(opp => [
+      opp.clientName,
+      opp.clientCountry,
+      opp.solutionName || '',
+      opp.description || '',
+      this.formatCurrency(opp.value || 0),
+      this.getStageDisplayName(opp.stageId || opp.stage, options.stagesMap),
+      opp.probability || 0,
+      this.getOwnerName(opp.ownerId, options.usersMap),
+      this.formatDate(opp.createdAt)
+    ]);
+
+    // Create worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
 
     // Add filter information if requested
-    let finalContent = csvContent;
     if (options.includeFilters && options.filterInfo) {
-      finalContent = `Filters Applied: ${options.filterInfo}\nGenerated: ${new Date().toLocaleString()}\n\n${csvContent}`;
+      // Add filter info as a separate sheet or at the top
+      const filterSheet = XLSX.utils.aoa_to_sheet([
+        ['Filters Applied:', options.filterInfo],
+        ['Generated:', new Date().toLocaleString()],
+        [''] // Empty row
+      ]);
+      XLSX.utils.book_append_sheet(workbook, filterSheet, 'Filters');
     }
 
-    this.downloadFile(finalContent, filename + '.csv', 'text/csv');
+    // Add main data sheet
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Opportunities');
+
+    // Generate Excel file
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+    // Create blob and download
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    this.downloadFile(blob, filename + '.xlsx');
   }
 
   private async exportToPDF(opportunities: Opportunity[], filename: string, options: ExportOptions): Promise<void> {
@@ -95,12 +114,13 @@ export class ExportService {
       <tr>
         <td>${opp.clientName}</td>
         <td>${opp.clientCountry || ''}</td>
-        <td>${opp.description}</td>
-        <td>$${(opp.value || 0).toLocaleString()}</td>
+        <td>${opp.solutionName || ''}</td>
+        <td>${opp.description || ''}</td>
+        <td>${this.formatCurrency(opp.value || 0)}</td>
         <td>${this.getStageDisplayName(opp.stageId || opp.stage, options.stagesMap)}</td>
         <td>${opp.probability || 0}%</td>
         <td>${this.getOwnerName(opp.ownerId, options.usersMap)}</td>
-        <td>${opp.createdAt ? this.formatDate(opp.createdAt.toDate ? opp.createdAt.toDate() : new Date(opp.createdAt)) : ''}</td>
+        <td>${this.formatDate(opp.createdAt)}</td>
       </tr>
     `).join('');
 
@@ -124,6 +144,7 @@ export class ExportService {
               <tr>
                 <th>Client Name</th>
                 <th>Client Country</th>
+                <th>Solution Name</th>
                 <th>Description</th>
                 <th>Value</th>
                 <th>Stage</th>
@@ -153,8 +174,14 @@ export class ExportService {
     return user && user.name ? user.name : ownerId;
   }
 
-  private downloadFile(content: string, filename: string, contentType: string): void {
-    const blob = new Blob([content], { type: contentType });
+  private downloadFile(content: string | Blob, filename: string, contentType?: string): void {
+    let blob: Blob;
+    if (content instanceof Blob) {
+      blob = content;
+    } else {
+      blob = new Blob([content], { type: contentType || 'text/plain' });
+    }
+
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -179,7 +206,31 @@ export class ExportService {
     return value;
   }
 
-  private formatDate(date: Date): string {
+  private formatDate(timestamp: any): string {
+    if (!timestamp) return '';
+    
+    let date: Date;
+    
+    // If it's already a Date object, use it
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    }
+    // If it's a Firestore Timestamp, convert it
+    else if (timestamp && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    }
+    // If it's a string or number, try to parse it
+    else {
+      date = new Date(timestamp);
+    }
+    
     return date.toLocaleDateString();
+  }
+
+  private formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value);
   }
 }
