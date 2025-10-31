@@ -46,15 +46,17 @@ interface PipelineStageDisplay {
             <div class="flex items-center justify-between mb-4">
               <div [ngClass]="'w-10 h-10 rounded-lg flex items-center justify-center ' + stage.color">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <ng-container [ngSwitch]="i % 4">
-                    <!-- Prospect icon -->
-                    <path *ngSwitchCase="0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    <!-- Qualification icon -->
-                    <path *ngSwitchCase="1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    <!-- Proposal icon -->
-                    <path *ngSwitchCase="2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    <!-- Won/Closed icon -->
-                    <path *ngSwitchDefault stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                  <ng-container [ngSwitch]="getStageIconType(stage)">
+                    <!-- Prospect/Lead icon -->
+                    <path *ngSwitchCase="'prospect'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    <!-- Qualification/Check icon -->
+                    <path *ngSwitchCase="'qualification'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    <!-- Proposal/Document icon -->
+                    <path *ngSwitchCase="'proposal'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <!-- Won/Star icon -->
+                    <path *ngSwitchCase="'won'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                    <!-- Default/Generic icon -->
+                    <path *ngSwitchDefault stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                   </ng-container>
                 </svg>
               </div>
@@ -93,7 +95,7 @@ interface PipelineStageDisplay {
             </div>
           </div>
         </div>
-        <div *ngIf="!isLoading && pipelineStages.length === 0" class="col-span-full text-center text-sm text-gray-500 py-8">
+        <div *ngIf="!isLoading && pipelineStages.length === 0" class="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 text-center text-sm text-gray-500 py-8">
           No pipeline stages configured yet.
         </div>
       </div>
@@ -247,6 +249,24 @@ export class PipelineOverviewWidgetComponent implements OnInit, OnDestroy {
       'bg-teal-400': '#2DD4BF'
     };
     return colorMap[colorClass] || '#9CA3AF';
+  }
+
+  getStageIconType(stage: PipelineStageDisplay): string {
+    // Determine icon type based on stage name/key
+    const key = stage.key.toLowerCase();
+    const name = stage.name.toLowerCase();
+    
+    if (key.includes('prospect') || name.includes('prospect') || key.includes('lead') || name.includes('lead')) {
+      return 'prospect';
+    } else if (key.includes('qualif') || name.includes('qualif')) {
+      return 'qualification';
+    } else if (key.includes('proposal') || name.includes('proposal') || key.includes('negotiat') || name.includes('negotiat')) {
+      return 'proposal';
+    } else if (key.includes('won') || name.includes('won') || key.includes('closed') || name.includes('closed')) {
+      return 'won';
+    }
+    
+    return 'default';
   }
 
   navigateToStage(stageKey: string): void {
