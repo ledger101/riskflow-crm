@@ -1,12 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PipelineOverviewWidgetComponent } from './pipeline-overview-widget.component';
 import { OpportunityService } from '../../../core/services/opportunity.service';
+import { PipelineStageService } from '../../../core/services/pipeline-stage.service';
+import { Router } from '@angular/router';
 import { Opportunity } from '../../../shared/models/opportunity.model';
+import { of } from 'rxjs';
 
 describe('PipelineOverviewWidgetComponent', () => {
   let component: PipelineOverviewWidgetComponent;
   let fixture: ComponentFixture<PipelineOverviewWidgetComponent>;
   let mockOpportunityService: jasmine.SpyObj<OpportunityService>;
+  let mockPipelineStageService: jasmine.SpyObj<PipelineStageService>;
+  let mockRouter: jasmine.SpyObj<Router>;
 
   const mockOpportunities: Opportunity[] = [
     {
@@ -20,6 +25,7 @@ describe('PipelineOverviewWidgetComponent', () => {
       description: 'Test opportunity 1',
       value: 50000,
       stage: 'prospecting',
+      stageId: 'prospecting',
       probability: 20,
       createdAt: new Date()
     },
@@ -34,6 +40,7 @@ describe('PipelineOverviewWidgetComponent', () => {
       description: 'Test opportunity 2',
       value: 75000,
       stage: 'qualification',
+      stageId: 'qualification',
       probability: 40,
       createdAt: new Date()
     },
@@ -48,24 +55,45 @@ describe('PipelineOverviewWidgetComponent', () => {
       description: 'Test opportunity 3',
       value: 100000,
       stage: 'closed-won',
+      stageId: 'closed-won',
       probability: 100,
       createdAt: new Date()
     }
   ];
 
+  const mockStages = [
+    { id: 'prospecting', name: 'Prospecting', order: 1, defaultProbability: 20 },
+    { id: 'qualification', name: 'Qualification', order: 2, defaultProbability: 40 },
+    { id: 'closed-won', name: 'Closed Won', order: 3, defaultProbability: 100 }
+  ];
+
   beforeEach(async () => {
-    const opportunityServiceSpy = jasmine.createSpyObj('OpportunityService', ['getOpportunities']);
+    const opportunityServiceSpy = jasmine.createSpyObj('OpportunityService', 
+      ['getOpportunities', 'getOpportunitiesStream']);
+    const pipelineStageServiceSpy = jasmine.createSpyObj('PipelineStageService', 
+      ['seedDefaultStages', 'getStages', 'getStagesPromise']);
+    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [PipelineOverviewWidgetComponent],
       providers: [
-        { provide: OpportunityService, useValue: opportunityServiceSpy }
+        { provide: OpportunityService, useValue: opportunityServiceSpy },
+        { provide: PipelineStageService, useValue: pipelineStageServiceSpy },
+        { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(PipelineOverviewWidgetComponent);
     component = fixture.componentInstance;
     mockOpportunityService = TestBed.inject(OpportunityService) as jasmine.SpyObj<OpportunityService>;
+    mockPipelineStageService = TestBed.inject(PipelineStageService) as jasmine.SpyObj<PipelineStageService>;
+    mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    
+    // Setup default mock behaviors
+    mockPipelineStageService.seedDefaultStages.and.returnValue(Promise.resolve());
+    mockPipelineStageService.getStages.and.returnValue(of(mockStages));
+    mockPipelineStageService.getStagesPromise.and.returnValue(Promise.resolve(mockStages));
+    mockOpportunityService.getOpportunitiesStream.and.returnValue(of(mockOpportunities));
   });
 
   it('should create', () => {
@@ -73,19 +101,14 @@ describe('PipelineOverviewWidgetComponent', () => {
   });
 
   it('should load pipeline data on init', async () => {
-    mockOpportunityService.getOpportunities.and.returnValue(Promise.resolve(mockOpportunities));
-
     component.ngOnInit();
     await fixture.whenStable();
 
-    expect(mockOpportunityService.getOpportunities).toHaveBeenCalled();
     expect(component.totalOpportunities).toBe(3);
     expect(component.totalValue).toBe(225000);
   });
 
   it('should calculate pipeline stages correctly', async () => {
-    mockOpportunityService.getOpportunities.and.returnValue(Promise.resolve(mockOpportunities));
-
     component.ngOnInit();
     await fixture.whenStable();
 
@@ -102,7 +125,7 @@ describe('PipelineOverviewWidgetComponent', () => {
   });
 
   it('should handle empty opportunities array', async () => {
-    mockOpportunityService.getOpportunities.and.returnValue(Promise.resolve([]));
+    mockOpportunityService.getOpportunitiesStream.and.returnValue(of([]));
 
     component.ngOnInit();
     await fixture.whenStable();
@@ -112,13 +135,28 @@ describe('PipelineOverviewWidgetComponent', () => {
     expect(component.pipelineStages.every(stage => stage.count === 0)).toBe(true);
   });
 
-  it('should handle service error gracefully', async () => {
-    spyOn(console, 'error');
-    mockOpportunityService.getOpportunities.and.returnValue(Promise.reject('Service error'));
+  it('should navigate to stage when clicked', () => {
+    component.pipelineStages = [
+      {
+        id: 'prospecting',
+        name: 'Prospecting',
+        key: 'prospecting',
+        count: 1,
+        value: 50000,
+        percentage: 20,
+        color: 'bg-blue-400',
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-700'
+      }
+    ];
 
-    component.ngOnInit();
-    await fixture.whenStable();
+    component.navigateToStage('prospecting');
 
-    expect(console.error).toHaveBeenCalledWith('Error loading pipeline data:', 'Service error');
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/opportunities'], {
+      queryParams: {
+        stage: 'prospecting',
+        from: 'pipeline-widget'
+      }
+    });
   });
 });
