@@ -231,7 +231,8 @@ export class PipelineOverviewWidgetComponent implements OnInit, OnDestroy {
           bgColor: palette.bg,
           textColor: palette.text
         } as PipelineStageDisplay;
-      });
+      })
+      .filter(stage => stage.count > 0 && stage.value > 0);
 
     this.pipelineStages = displayStages;
   }

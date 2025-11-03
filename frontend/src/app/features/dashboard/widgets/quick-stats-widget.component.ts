@@ -23,7 +23,7 @@ interface QuickStat {
     <div class="bg-white rounded-xl shadow-md p-6 h-full">
       <h3 class="text-xl font-bold text-gray-900 mb-6">Quick Stats</h3>
       
-      <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
         <div *ngFor="let stat of stats" 
              class="p-4 rounded-lg border-2 border-gray-100 hover:border-gray-200 transition-all">
           <div class="flex items-center justify-between mb-2">
