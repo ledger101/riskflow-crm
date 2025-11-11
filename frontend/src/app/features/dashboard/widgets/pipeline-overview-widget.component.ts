@@ -11,6 +11,7 @@ interface PipelineStageDisplay {
   id: string;
   name: string;
   key: string; // slug of name for routing/filtering
+  stageIds: string[];
   count: number;
   value: number;
   percentage: number;
@@ -204,35 +205,79 @@ export class PipelineOverviewWidgetComponent implements OnInit, OnDestroy {
     this.totalValue = opportunities.reduce((sum, o) => sum + (o.value || 0), 0);
     this.averageDealSize = this.totalOpportunities ? this.totalValue / this.totalOpportunities : 0;
 
-    // Aggregate value for each stage
-    const displayStages: PipelineStageDisplay[] = stages
-      .sort((a, b) => a.order - b.order)
-      .map((stage, idx) => {
-        const key = this.slugify(stage.name);
-        // Match opportunities where stage field matches (id | name | slug)
-        const matching = opportunities.filter(o => {
-          const normalized = o.stage?.toLowerCase?.();
-          const normalizedId = o.stageId?.toLowerCase?.();
-          return normalizedId === stage.id.toLowerCase() ||
-                 normalized === stage.id.toLowerCase() ||
-                 normalized === stage.name.toLowerCase() ||
-                 normalized === key;
-        });
-  const value = matching.reduce((sum, o) => sum + Number(o.value || 0), 0);
-        const palette = this.colorPalette[idx % this.colorPalette.length];
-        return {
-          id: stage.id,
-          name: stage.name,
-          key,
-          count: matching.length,
-          value, // aggregated value for this stage
-          percentage: this.totalValue ? Math.round((value / this.totalValue) * 100) : 0,
-          color: palette.color,
-          bgColor: palette.bg,
-          textColor: palette.text
-        } as PipelineStageDisplay;
-      })
-      .filter(stage => stage.count > 0 && stage.value > 0);
+    // Aggregate stages by normalized key to prevent duplicates
+    const stageAggregates = new Map<string, {
+      stage: DomainPipelineStage;
+      count: number;
+      value: number;
+      stageIds: Set<string>;
+      opportunityIds: Set<string>;
+    }>();
+
+    const sortedStages = [...stages].sort((a, b) => a.order - b.order);
+
+    sortedStages.forEach(stage => {
+      const key = this.slugify(stage.name);
+      const existing = stageAggregates.get(key) || {
+        stage,
+        count: 0,
+        value: 0,
+        stageIds: new Set<string>(),
+        opportunityIds: new Set<string>()
+      };
+
+      // Match opportunities where stage field matches (id | name | slug)
+      const matching = opportunities.filter(o => {
+        const normalized = o.stage?.toLowerCase?.();
+        const normalizedId = o.stageId?.toLowerCase?.();
+        return normalizedId === stage.id.toLowerCase() ||
+               normalized === stage.id.toLowerCase() ||
+               normalized === stage.name.toLowerCase() ||
+               normalized === key;
+      });
+
+      matching.forEach(opp => {
+        if (!existing.opportunityIds.has(opp.id)) {
+          existing.opportunityIds.add(opp.id);
+          existing.count += 1;
+          existing.value += Number(opp.value || 0);
+        }
+      });
+
+      existing.stageIds.add(stage.id);
+      stageAggregates.set(key, existing);
+    });
+
+    const displayStages: PipelineStageDisplay[] = [];
+    const processedKeys = new Set<string>();
+
+    sortedStages.forEach(stage => {
+      const key = this.slugify(stage.name);
+      if (processedKeys.has(key)) {
+        return;
+      }
+
+      const aggregate = stageAggregates.get(key);
+      if (!aggregate || aggregate.count === 0 || aggregate.value === 0) {
+        processedKeys.add(key);
+        return;
+      }
+
+      processedKeys.add(key);
+      const palette = this.colorPalette[displayStages.length % this.colorPalette.length];
+      displayStages.push({
+        id: aggregate.stage.id,
+        name: aggregate.stage.name,
+        key,
+        stageIds: Array.from(aggregate.stageIds),
+        count: aggregate.count,
+        value: aggregate.value,
+        percentage: this.totalValue ? Math.round((aggregate.value / this.totalValue) * 100) : 0,
+        color: palette.color,
+        bgColor: palette.bg,
+        textColor: palette.text
+      });
+    });
 
     this.pipelineStages = displayStages;
   }
@@ -273,7 +318,7 @@ export class PipelineOverviewWidgetComponent implements OnInit, OnDestroy {
   navigateToStage(stageKey: string): void {
     // stageKey passed in *currently* is slug; find stage id to route consistently by id
     const target = this.pipelineStages.find(ps => ps.key === stageKey);
-    const routeStage = target ? target.id : stageKey; // fallback to provided key if not found
+    const routeStage = target ? target.key : stageKey; // prefer slug to capture grouped stages
     this.router.navigate(['/opportunities'], {
       queryParams: {
         stage: routeStage,

@@ -237,25 +237,28 @@ export class OpportunitiesListComponent implements OnInit {
     
   if (this.activeStageFilter) {
       const stageId = this.activeStageFilter.toLowerCase();
-      // Build lookup maps for slug and name -> id
       const slugify = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-      const stageMatch = this.availableStages.find(s => {
+
+      // Collect all stages that match by id, name, or slug
+      const matchingStages = this.availableStages.filter(s => {
         const slug = slugify(s.name);
         return s.id.toLowerCase() === stageId || s.name.toLowerCase() === stageId || slug === stageId;
       });
-      const effectiveId = stageMatch ? stageMatch.id : this.activeStageFilter; // fallback
+
+      const matchingStageIds = new Set<string>(matchingStages.map(s => s.id.toLowerCase()));
+      const matchingNames = new Set<string>(matchingStages.map(s => s.name.toLowerCase()));
+      const matchingSlugs = new Set<string>(matchingStages.map(s => slugify(s.name)));
+
       filtered = filtered.filter(opp => {
         const oppStage = (opp.stage || '').toLowerCase();
     const oppStageId = (opp.stageId || '').toLowerCase();
-        if (!oppStage) return false;
-    if (oppStage === effectiveId.toLowerCase()) return true;
-    if (oppStageId && oppStageId === effectiveId.toLowerCase()) return true;
-        // Backward compatibility if opp.stage stored as name or slug
-        if (stageMatch) {
-          const nameLower = stageMatch.name.toLowerCase();
-            const slug = slugify(stageMatch.name);
-      return oppStage === nameLower || oppStage === slug || oppStageId === stageMatch.id.toLowerCase();
-        }
+        if (!oppStage && !oppStageId) return false;
+
+        if (matchingStageIds.has(oppStageId)) return true;
+        if (matchingStageIds.has(oppStage)) return true;
+        if (matchingNames.has(oppStage)) return true;
+        if (matchingSlugs.has(oppStage)) return true;
+        if (stageId && (oppStage === stageId || oppStageId === stageId)) return true;
         return false;
       });
     }

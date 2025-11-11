@@ -84,6 +84,8 @@ export class SetPasswordComponent implements OnInit {
         if (storedEmail) {
           try {
             await this.auth.completeEmailLinkSignIn(undefined, storedEmail);
+            // Small delay to ensure auth state is properly propagated
+            await new Promise(resolve => setTimeout(resolve, 100));
           } catch (e:any) {
             this.error = e.message || 'Failed to complete sign-in.';
           }
@@ -111,9 +113,25 @@ export class SetPasswordComponent implements OnInit {
     this.loading = true; this.error = null;
     try {
       await this.auth.completeEmailLinkSignIn(undefined, this.emailForm.value.email);
+      // Small delay to ensure auth state is properly propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
       this.needsEmail = false;
-    } catch (e:any) { this.error = e.message || 'Failed to complete sign-in'; }
-    finally { this.loading = false; }
+    } catch (e:any) { 
+      this.error = e.message || 'Failed to complete sign-in';
+      // Ensure loading is reset even in case of errors
+      this.loading = false;
+      // Mark form controls as touched to show validation errors
+      Object.keys(this.emailForm.controls).forEach(key => {
+        const control = this.emailForm.get(key);
+        control?.markAsTouched();
+      });
+    }
+    finally { 
+      // Only reset loading if we haven't already done so in the catch block
+      if (this.loading) {
+        this.loading = false;
+      }
+    }
   }
 
   async onSubmit() {
@@ -125,8 +143,18 @@ export class SetPasswordComponent implements OnInit {
       this.router.navigate(['/']);
     } catch (e: any) {
       this.error = e.message || 'Failed to set password';
-    } finally {
+      // Ensure loading is reset even in case of errors
       this.loading = false;
+      // Mark form controls as touched to show validation errors
+      Object.keys(this.form.controls).forEach(key => {
+        const control = this.form.get(key);
+        control?.markAsTouched();
+      });
+    } finally {
+      // Only reset loading if we haven't already done so in the catch block
+      if (this.loading) {
+        this.loading = false;
+      }
     }
   }
 }
